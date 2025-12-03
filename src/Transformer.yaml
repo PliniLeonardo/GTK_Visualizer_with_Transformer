@@ -1,0 +1,52 @@
+mode: "metrics" # "train", "test" or "metrics"
+
+# Data Configuration
+data:
+  data_dir: "/home/leonardo/Scrivania/SingleProcessing/src/data/Pre-processing/TrackingTransformer/data"
+  batch_size: 100
+  num_workers: 15
+  
+# WandB
+wandb:
+  enabled: false #false
+  project: "GTK_Lightning"
+  group: "SingleProcessing"
+  name: "Transformer"
+  log_model : true
+
+# Model Configuration
+model:
+  input_dim: 4
+  d_model: 32
+  num_head: 2
+  num_layers: 2
+  hidden_dim_classifier: 64
+  dropout: 0.1
+  output_dim: 2
+
+  lr: 0.0001
+  lr_scheduler_step_size: 50 # every x epochs decrease the learning rate
+  lr_scheduler_gamma: 0.5 # decrease the learning rate by this factor
+  # weight_decay: 0.0005
+  num_epochs: 1000
+  log_interval: 10
+  device: "cpu" # "cpu" or "cuda"s
+
+# Loss
+loss : "Focal" # "CrossEntropy", "Focal"
+
+# Checkpoint Configuration
+checkpoint:
+  dir_path: "Checkpoints/Transformer"
+  save_top_k : 1
+  monitor: "val_loss"
+  mode: "min"
+  patience: 10
+
+load_checkpoint: "/home/leonardo/Scrivania/SingleProcessing/Checkpoints/Transformer/Transformer_GTKTime-KTAG_V4.ckpt"
+# "/home/leonardo/Scrivania/INFN-Pattern_Recognition/checkpoint/Unclustered data/Transformer unclustered soloTempoGTK .pth"
+#  "/home/leonardo/Scrivania/NA62_GTK_Tracking/Checkpoints/Transformer/Transformer_GTKTime-KTAG.ckpt"
+  
+metrics:
+  threshold: [ 0.01, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6]
+  test_loader_slice : -1 #-1 to use the whole test set, 100 to select the first 100
