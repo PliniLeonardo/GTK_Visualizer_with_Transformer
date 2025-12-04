@@ -13,4 +13,4 @@ Activate the environment  ```source VisualizationGTK_environment/bin/activate```
 
 Notice that
 - this implementation needs the KTAG Time.
-- the hits are not clustered and the pattern recognition method is applied on top of unclustered hits.
+- the hits are not clustered and the pattern recognition method is applied on top of unclustered hits. 
