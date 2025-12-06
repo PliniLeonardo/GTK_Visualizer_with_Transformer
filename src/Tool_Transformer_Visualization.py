@@ -294,11 +294,9 @@ def plot_gtk_hits_from_tensor(features_tensor, plot_folder_path):
     fig, axs = plt.subplots(2, 2, figsize=(14, 14))  # Adjust figsize for larger plots
     axs = axs.flatten()  # Flatten the 2x2 grid for easier indexing
 
-    # Define x and y limits for all GTKs
-    x_lim = (x.min() * 1.3 if x.min() < 0 else x.min() * 0.75,
-             x.max() * 1.5 if x.max() > 0 else x.max() * 0.75)
-    y_lim = (y.min() * 1.3 if y.min() < 0 else y.min() * 0.75,
-             y.max() * 1.5 if y.max() > 0 else y.max() * 0.75)
+    # Definisci i limiti fissi per X e Y
+    x_lim = (-30.4, 30.4)
+    y_lim = (-13.5, 13.5)
 
     # Set unique markers for each node
     num_nodes = len(x)
@@ -338,10 +336,10 @@ def plot_gtk_hits_from_tensor(features_tensor, plot_folder_path):
 
         axs[gtk].set_xlabel('x')
         axs[gtk].set_ylabel('y')
-        axs[gtk].set_title(f'GTK{gtk}', pad = 20)
+        axs[gtk].set_title(f'GTK{gtk}', pad=20)
         axs[gtk].grid()
-        axs[gtk].set_xlim(x_lim)
-        axs[gtk].set_ylim(y_lim)
+        axs[gtk].set_xlim(x_lim)  # Imposta i limiti fissi per X
+        axs[gtk].set_ylim(y_lim)  # Imposta i limiti fissi per Y
 
     plt.tight_layout()  # Adjust layout to prevent overlap
     # plt.show()
@@ -351,7 +349,6 @@ def plot_gtk_hits_from_tensor(features_tensor, plot_folder_path):
         os.makedirs(plot_folder_path)
     fig.savefig(os.path.join(plot_folder_path, 'GTK_hits_visualization.png'), dpi=300)
     plt.close(fig)
-
 
 
 def split_hits_by_gtk(features_tensor, dataframe_path):
@@ -410,7 +407,7 @@ def plot_3d_interactive(pred_tracks, features_tensor, save_path,
     z_station = features[:, 2].astype(int)
 
     fig = go.Figure()
-    base_colors = ['red','blue','green','orange','purple','cyan','magenta','brown','grey','pink']
+    base_colors = ['red', 'blue', 'green', 'orange', 'purple', 'cyan', 'magenta', 'brown', 'grey', 'pink']
 
     # plot tracks
     for i, track in enumerate(pred_tracks):
@@ -437,26 +434,29 @@ def plot_3d_interactive(pred_tracks, features_tensor, save_path,
         fig.add_trace(go.Scatter3d(
             x=x[mask_unused], y=z_station[mask_unused], z=y[mask_unused],
             mode='markers',
-            marker=dict(size=max(2, marker_size-1), color='black'),
+            marker=dict(size=max(2, marker_size - 1), color='black'),
             name='unassigned'
         ))
 
     # station planes
-    xmin, xmax = x.min(), x.max()
-    ymin, ymax = y.min(), y.max()
-    pad_x = 0.05*(xmax-xmin) if xmax>xmin else 1.0
-    pad_y = 0.05*(ymax-ymin) if ymax>ymin else 1.0
-    X_plane = [xmin-pad_x, xmax+pad_x, xmax+pad_x, xmin-pad_x]
-    Z_plane = [ymin-pad_y, ymin-pad_y, ymax+pad_y, ymax+pad_y]
+    x_lim = (-30.4, 30.4)  # Limiti fissi per X
+    y_lim = (-13.5, 13.5)  # Limiti fissi per Y
+    X_plane = [x_lim[0], x_lim[1], x_lim[1], x_lim[0]]
+    Z_plane = [y_lim[0], y_lim[0], y_lim[1], y_lim[1]]
     for s in sorted(np.unique(z_station)):
         fig.add_trace(go.Mesh3d(
-            x=X_plane, y=[s]*4, z=Z_plane,
-            i=[0,0], j=[1,2], k=[2,3],
+            x=X_plane, y=[s] * 4, z=Z_plane,
+            i=[0, 0], j=[1, 2], k=[2, 3],
             opacity=0.12, color='black', showlegend=False
         ))
 
     fig.update_layout(
-        scene=dict(xaxis_title='X', yaxis_title='GTK Station', zaxis_title='Y', aspectmode='auto'),
+        scene=dict(
+            xaxis=dict(title='X', range=x_lim),  # Imposta i limiti fissi per X
+            yaxis=dict(title='GTK Station'),
+            zaxis=dict(title='Y', range=y_lim),  # Imposta i limiti fissi per Y
+            aspectmode='auto'
+        ),
         margin=dict(l=0, r=0, t=40, b=0),
         title="Interactive predicted tracks"
     )

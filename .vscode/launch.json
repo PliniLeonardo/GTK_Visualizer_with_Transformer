@@ -1,0 +1,31 @@
+{
+    "configurations": [
+        //Visualization Transformer
+        {
+            "name": "Transformer Visualization",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/Transformer_Visualization.py",
+            "console": "integratedTerminal",
+            "args": [
+                "${workspaceFolder}/config_file_Transformer.yaml"
+            ],
+            "justMyCode": true,
+            "python": "/Users/leonardoplini/Desktop/Visualizations/VisualizationGTK_environment/bin/python"
+        },
+
+        //Visualization Develop
+        {
+            "name": "Develop Visualization",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/Develop_Visualization.py",
+            "console": "integratedTerminal",
+            "args": [
+                "${workspaceFolder}/config_file_Develop.yaml"
+            ],
+            "justMyCode": true,
+            "python": "/Users/leonardoplini/Desktop/Visualizations/VisualizationGTK_environment/bin/python"
+        }
+    ]
+}
