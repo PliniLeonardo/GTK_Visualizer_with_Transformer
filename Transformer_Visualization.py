@@ -45,7 +45,7 @@ def main():
 
     gtk_dfs = split_hits_by_gtk(features_tensor, config['dataframe_path'])
 
-    plot_3d_interactive(
+    plot_3d_interactive_transformer(
         pred_tracks,
         features_tensor,
         save_path=f"{plot_folder_path}/Interactive_plot_tracks.html"

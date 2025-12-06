@@ -391,8 +391,83 @@ def split_hits_by_gtk(features_tensor, dataframe_path):
     return gtk_dfs
 
  
-def plot_3d_interactive(pred_tracks, features_tensor, save_path,
-                        marker_size=4, line_width=3, show=True):
+# def plot_3d_interactive_transformer(pred_tracks, features_tensor, save_path,
+#                         marker_size=4, line_width=3, show=True):
+#     """
+#     Interactive 3D Plotly plot of predicted tracks. Unassigned hits drawn as black points.
+#     Args:
+#         pred_tracks: list of tracks (each track = list/array of hit indices)
+#         features_tensor: torch.Tensor or numpy array with columns [x, y, z_station, (t)]
+#     """
+
+#     # features -> numpy
+#     features = features_tensor.numpy() if hasattr(features_tensor, "numpy") else np.asarray(features_tensor)
+#     x = features[:, 0]
+#     y = features[:, 1]
+#     z_station = features[:, 2].astype(int)
+
+#     fig = go.Figure()
+#     base_colors = ['red', 'blue', 'green', 'orange', 'purple', 'cyan', 'magenta', 'brown', 'grey', 'pink']
+
+#     # plot tracks
+#     for i, track in enumerate(pred_tracks):
+#         idx = np.asarray(track, dtype=int)
+#         if idx.size == 0:
+#             continue
+#         fig.add_trace(go.Scatter3d(
+#             x=x[idx], y=z_station[idx], z=y[idx],
+#             mode='lines+markers',
+#             line=dict(width=line_width, color=base_colors[i % len(base_colors)]),
+#             marker=dict(size=marker_size),
+#             name=f"track_{i}"
+#         ))
+
+#     # unassigned hits (black)
+#     if len(pred_tracks) > 0:
+#         used = np.unique(np.concatenate([np.asarray(t, dtype=int) for t in pred_tracks if len(t) > 0])).astype(int)
+#     else:
+#         used = np.array([], dtype=int)
+#     mask_unused = np.ones(len(x), dtype=bool)
+#     if used.size > 0:
+#         mask_unused[used] = False
+#     if mask_unused.sum() > 0:
+#         fig.add_trace(go.Scatter3d(
+#             x=x[mask_unused], y=z_station[mask_unused], z=y[mask_unused],
+#             mode='markers',
+#             marker=dict(size=max(2, marker_size - 1), color='black'),
+#             name='unassigned'
+#         ))
+
+#     # station planes
+#     x_lim = (-30.4, 30.4)  # Limiti fissi per X
+#     y_lim = (-13.5, 13.5)  # Limiti fissi per Y
+#     X_plane = [x_lim[0], x_lim[1], x_lim[1], x_lim[0]]
+#     Z_plane = [y_lim[0], y_lim[0], y_lim[1], y_lim[1]]
+#     for s in sorted(np.unique(z_station)):
+#         fig.add_trace(go.Mesh3d(
+#             x=X_plane, y=[s] * 4, z=Z_plane,
+#             i=[0, 0], j=[1, 2], k=[2, 3],
+#             opacity=0.12, color='black', showlegend=False
+#         ))
+
+#     fig.update_layout(
+#         scene=dict(
+#             xaxis=dict(title='X', range=x_lim),  # Imposta i limiti fissi per X
+#             yaxis=dict(title='GTK Station'),
+#             zaxis=dict(title='Y', range=y_lim),  # Imposta i limiti fissi per Y
+#             aspectmode='auto'
+#         ),
+#         margin=dict(l=0, r=0, t=40, b=0),
+#         title="Interactive predicted tracks"
+#     )
+
+#     pio.write_html(fig, file=save_path, auto_open=False, include_plotlyjs='cdn')
+#     if show:
+#         fig.show()
+#     return fig
+
+def plot_3d_interactive_transformer(pred_tracks, features_tensor, save_path,
+                                    marker_size=4, line_width=3, show=True):
     """
     Interactive 3D Plotly plot of predicted tracks. Unassigned hits drawn as black points.
     Args:
@@ -419,7 +494,8 @@ def plot_3d_interactive(pred_tracks, features_tensor, save_path,
             mode='lines+markers',
             line=dict(width=line_width, color=base_colors[i % len(base_colors)]),
             marker=dict(size=marker_size),
-            name=f"track_{i}"
+            name=f"Track {i}",
+            visible=True  # Default: all tracks visible
         ))
 
     # unassigned hits (black)
@@ -435,7 +511,8 @@ def plot_3d_interactive(pred_tracks, features_tensor, save_path,
             x=x[mask_unused], y=z_station[mask_unused], z=y[mask_unused],
             mode='markers',
             marker=dict(size=max(2, marker_size - 1), color='black'),
-            name='unassigned'
+            name='Unassigned Hits',
+            visible=True  # Always visible
         ))
 
     # station planes
@@ -450,7 +527,43 @@ def plot_3d_interactive(pred_tracks, features_tensor, save_path,
             opacity=0.12, color='black', showlegend=False
         ))
 
+    # Add dropdown menu for track selection
+    buttons = [
+        dict(
+            label="Show All Tracks",
+            method="update",
+            args=[{"visible": [True] * len(fig.data)},  # Show all traces
+                  {"title": "All Tracks Visible"}]
+        )
+    ]
+
+    # Add a button for each track
+    for i in range(len(pred_tracks)):
+        visibility = [False] * len(fig.data)
+        visibility[-1] = True  # Unassigned hits always visible
+        visibility[i] = True  # Show only the selected track
+        buttons.append(
+            dict(
+                label=f"Show Track {i}",
+                method="update",
+                args=[{"visible": visibility},
+                      {"title": f"Track {i} Visible"}]
+            )
+        )
+
+    # Update layout with dropdown menu
     fig.update_layout(
+        updatemenus=[
+            dict(
+                buttons=buttons,
+                direction="down",
+                showactive=True,
+                x=0.1,
+                y=1.15,
+                xanchor="left",
+                yanchor="top"
+            )
+        ],
         scene=dict(
             xaxis=dict(title='X', range=x_lim),  # Imposta i limiti fissi per X
             yaxis=dict(title='GTK Station'),
@@ -458,7 +571,7 @@ def plot_3d_interactive(pred_tracks, features_tensor, save_path,
             aspectmode='auto'
         ),
         margin=dict(l=0, r=0, t=40, b=0),
-        title="Interactive predicted tracks"
+        title="Interactive Predicted Tracks"
     )
 
     pio.write_html(fig, file=save_path, auto_open=False, include_plotlyjs='cdn')

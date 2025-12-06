@@ -32,7 +32,17 @@ def main():
 
     # Visualize the data
     plot_folder_path = config['plot_folder_path']
-    plot_gtk_hits_from_tensor(features_tensor, plot_folder_path)
+    plot_gtk_hits_from_tensor(features_tensor_in_time_window, plot_folder_path)
+
+
+    gtk_dfs = split_hits_by_gtk(features_tensor_in_time_window, config['dataframe_path'])
+
+    plot_3d_interactive_develop(
+        predicted_tracks_indexes,
+        features_tensor_in_time_window,
+        features_tensor,
+        save_path=f"{plot_folder_path}/Interactive_plot_tracks.html"
+    )
 
 
     print (" DAJEEE ")
