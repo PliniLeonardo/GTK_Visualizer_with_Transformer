@@ -10,23 +10,32 @@ import plotly.graph_objects as go
 from ipywidgets import interact, Text
 from IPython.display import display
 
-def read_root_file(root_file, tree_path, x_key, y_key, z_key, time_key, predicted_tracks_indexes):
+def read_root_file(config):
     """
     Reads data from a ROOT file and returns a dictionary with the specified keys.
     """
-    
+
+    required_keys = ['root_file', 'event_number', 'tree_path', 'x_key', 'y_key', 'z_key', 'time_key', 'predicted_tracks_indexes']
+    # Give error if any required key is missing
+    try:
+        root_file, event_number, tree_path, x_key, y_key, z_key, time_key, predicted_tracks_indexes = (
+            config[key] for key in required_keys
+        )
+    except KeyError as e:
+        raise ValueError(f"Missing required key in config: {e.args[0]}")
+
 
     with uproot.open(root_file) as f:
-        predicted_tracks_indexes = f[predicted_tracks_indexes].array(library='np')
-        predicted_tracks_indexes = np.array([np.array(list(stl_vector)) for stl_vector in predicted_tracks_indexes[0]], dtype=object)
+        predicted_tracks_indexes = f[predicted_tracks_indexes].array(library='np')[event_number]
+        predicted_tracks_indexes = np.array([np.array(stl_vector) for stl_vector in predicted_tracks_indexes], dtype=object)
 
 
         tree = f[tree_path]
         data = {
-            'x': tree[x_key].array(library='np'),
-            'y': tree[y_key].array(library='np'),
-            'z': tree[z_key].array(library='np'),
-            'time': tree[time_key].array(library='np'),
+            'x': tree[x_key].array(library='np')[event_number],
+            'y': tree[y_key].array(library='np')[event_number],
+            'z': tree[z_key].array(library='np')[event_number],
+            'time': tree[time_key].array(library='np')[event_number],
             'predicted_tracks_indexes': predicted_tracks_indexes
         }
     return data
@@ -52,7 +61,7 @@ def filter_predicted_tracks(predicted_tracks_indexes, mask):
 
     return np.array(filtered_tracks, dtype=object)
 
-def build_input_for_develop (x, y, z, time,time_window,  predicted_tracks_indexes):
+def build_input (x, y, z, time,time_window,  predicted_tracks_indexes):
     """
     Builds input tensor for the develop visualization from the provided data.
     :param x: x coordinates
@@ -63,10 +72,10 @@ def build_input_for_develop (x, y, z, time,time_window,  predicted_tracks_indexe
     :param predicted_tracks_indexes: indexes of predicted tracks
     """
 
-    x = np.concatenate(x)
-    y =  np.concatenate(y)
-    z =  np.concatenate(z)
-    time =  np.concatenate(time)
+    # x = np.concatenate(x)
+    # y =  np.concatenate(y)
+    # z =  np.concatenate(z)
+    # time =  np.concatenate(time)
     features = np.stack((x, y, z, time), axis=-1)
     features_tensor = torch.tensor(features, dtype=torch.float32)
 
@@ -80,10 +89,10 @@ def build_input_for_develop (x, y, z, time,time_window,  predicted_tracks_indexe
     features_tensor[:, 2] = torch.tensor([z_mapping.get(int(val), val) for val in features_tensor[:, 2].numpy()])
     features_tensor_in_time_window[:, 2] = torch.tensor([z_mapping.get(int(val), val) for val in features_tensor_in_time_window[:, 2].numpy()])
 
-    predicted_tracks_indexes = filter_predicted_tracks(predicted_tracks_indexes, mask.numpy())
+    predicted_tracks_indexes_in_time = filter_predicted_tracks(predicted_tracks_indexes, mask.numpy())
     features_tensor_in_time_window = torch.tensor(features_tensor_in_time_window, dtype=torch.float32)
     
-    return features_tensor_in_time_window, predicted_tracks_indexes, features_tensor
+    return features_tensor_in_time_window, predicted_tracks_indexes_in_time, features_tensor
 
 
 def plot_gtk_hits_from_tensor(features_tensor, plot_folder_path):

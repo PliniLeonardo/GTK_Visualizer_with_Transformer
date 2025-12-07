@@ -1,6 +1,6 @@
 import sys
 import yaml
-from src.Tool_Develop_Visualization import *
+from src.Tool_Ntuple_Visualization import *
 
 def main():
     # Check command-line arguments
