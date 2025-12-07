@@ -26,6 +26,20 @@
             ],
             "justMyCode": true,
             "python": "/Users/leonardoplini/Desktop/Visualizations/VisualizationGTK_environment/bin/python"
-        }
+        },
+        //Visualization Ntupla da TAG transformer
+        {
+            "name": "Develop Visualization",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/Ntuple_Visualization.py",
+            "console": "integratedTerminal",
+            "args": [
+                "${workspaceFolder}/config_file_Ntuple.yaml"
+            ],
+            "justMyCode": true,
+            "python": "/Users/leonardoplini/Desktop/Visualizations/VisualizationGTK_environment/bin/python"
+        },
+
     ]
 }
