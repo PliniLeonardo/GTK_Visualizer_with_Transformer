@@ -23,5 +23,11 @@ Notice that
 
 # Commands to run Develop Visualization
 1. Insert your root file in the folder data_to_visualize
-2. Use the config_file.yaml to modify the parameters
+2. Use the config_file_Develop.yaml to modify the parameters
 3. Run the command ``` python Develop_Visualization.py config_file_Develop.yaml``` .
+
+
+# Commands to run Visualization with Ntuple from Reconstruction
+1. Insert your root file in the folder data_to_visualize
+2. Use the config_file_Ntuple.yaml to modify the parameters
+3. Run the command ``` python Ntuple_Visualization.py config_file_Ntuple.yaml``` .

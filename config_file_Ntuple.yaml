@@ -1,12 +1,14 @@
 root_file: "/Users/leonardoplini/Desktop/Visualizations/data_to_visualize/Ntupla-Transformer.root"
-# "data_to_visualize/First_element_to_visualize.root"
+# root_file: "/Users/leonardoplini/Desktop/Visualizations/data_to_visualize/Ntupla-Develop.root"
+
+event_number: 71
 tree_path : "/SlimReco;1/GigaTracker/fHits"
 x_key: "fHits.fPositionX"
 y_key: "fHits.fPositionY"
 z_key: "fHits.fPositionZ"
 time_key: "fHits.fTime"
-time_window_min: 10
-time_window_max: 30
+time_window_min: -10
+time_window_max: 10
 predicted_tracks_indexes: "/SlimReco;1/GigaTracker/fCandidates/fCandidates.fHitsIndexes"
 
 plot_folder_path : "plots"
