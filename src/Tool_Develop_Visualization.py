@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 from ipywidgets import interact, Text
 from IPython.display import display
 
-def read_root_file(root_file, tree_path, x_key, y_key, z_key, time_key, predicted_tracks_indexes):
+def read_root_file(root_file, tree_path, x_key, y_key, z_key, time_key, ktag_time_key, predicted_tracks_indexes):
     """
     Reads data from a ROOT file and returns a dictionary with the specified keys.
     """
@@ -27,6 +27,7 @@ def read_root_file(root_file, tree_path, x_key, y_key, z_key, time_key, predicte
             'y': tree[y_key].array(library='np'),
             'z': tree[z_key].array(library='np'),
             'time': tree[time_key].array(library='np'),
+            'ktag_time': tree[ktag_time_key].array(library='np'),
             'predicted_tracks_indexes': predicted_tracks_indexes
         }
     return data
@@ -52,7 +53,7 @@ def filter_predicted_tracks(predicted_tracks_indexes, mask):
 
     return np.array(filtered_tracks, dtype=object)
 
-def build_input_for_develop (x, y, z, time,time_window,  predicted_tracks_indexes):
+def build_input_for_develop (x, y, z, time, ktag_time, time_window, predicted_tracks_indexes):
     """
     Builds input tensor for the develop visualization from the provided data.
     :param x: x coordinates
@@ -67,6 +68,8 @@ def build_input_for_develop (x, y, z, time,time_window,  predicted_tracks_indexe
     y =  np.concatenate(y)
     z =  np.concatenate(z)
     time =  np.concatenate(time)
+    time = time - ktag_time *24.95/256 # time -ktag time
+
     features = np.stack((x, y, z, time), axis=-1)
     features_tensor = torch.tensor(features, dtype=torch.float32)
 
