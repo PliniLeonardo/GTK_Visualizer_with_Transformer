@@ -20,13 +20,14 @@ def main():
     y_key = config['y_key']
     z_key = config['z_key']
     time_key = config['time_key']
+    ktag_time = config['KTAG_key']
     time_window = (config['time_window_min'], config['time_window_max'])
 
-    data = read_root_file(root_file, tree_path, x_key, y_key, z_key, time_key)
+    data = read_root_file(root_file, tree_path, x_key, y_key, z_key, time_key, ktag_time)
 
     # Build input tensor for the transformer
     features_tensor, pair_indices = build_input_for_transformer(
-        data['x'], data['y'], data['z'], data['time'], time_window
+        data['x'], data['y'], data['z'], data['time'], data['ktag_time'],time_window
     )
 
     # Load the transformer model

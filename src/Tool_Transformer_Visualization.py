@@ -12,7 +12,7 @@ import os
 import pandas as pd
 
 
-def read_root_file(file_path, tree_path, x_path, y_path, z_path, time_path):
+def read_root_file(file_path, tree_path, x_path, y_path, z_path, time_path, ktag_time_path):
     '''
     Docstring per read_root_file
     
@@ -26,16 +26,18 @@ def read_root_file(file_path, tree_path, x_path, y_path, z_path, time_path):
     y = tree[y_path].array(library="np")
     z = tree[z_path].array(library="np")
     time = tree[time_path].array(library="np")
+    ktag_time = tree[ktag_time_path].array(library="np")
     data = {
         'x': x,
         'y': y,
         'z': z,
-        'time': time
+        'time': time,
+        'ktag_time': ktag_time
     }
     return data
 
 
-def build_input_for_transformer(x, y, z, time, time_window):
+def build_input_for_transformer(x, y, z, time, ktag_time, time_window):
     '''
     Docstring per build_input_for_transformer
     
@@ -50,6 +52,7 @@ def build_input_for_transformer(x, y, z, time, time_window):
     y = np.concatenate(y)
     z = np.concatenate(z)
     time = np.concatenate(time)
+    time = time -ktag_time *24.95/256 # time -ktag time
     features = np.stack((x, y, z, time), axis=-1)
     features_tensor = torch.tensor(features, dtype=torch.float32)
 
