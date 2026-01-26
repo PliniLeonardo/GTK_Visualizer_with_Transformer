@@ -20,6 +20,7 @@ def main():
     y_key = config['y_key']
     z_key = config['z_key']
     time_key = config['time_key']
+    ktag_time_key = config['KTAG_key']
     time_window = (config['time_window_min'], config['time_window_max'])
     predicted_tracks_indexes = config['predicted_tracks_indexes']
 
@@ -28,7 +29,7 @@ def main():
 
     # Build input tensor for the develop visualization
     features_tensor_in_time_window, predicted_tracks_indexes , features_tensor= build_input(
-        data['x'], data['y'], data['z'], data['time'], time_window,  data['predicted_tracks_indexes']
+        data['x'], data['y'], data['z'], data['time'], data['ktag_time'], time_window,  data['predicted_tracks_indexes']
     )
 
     # Visualize the data

@@ -15,10 +15,10 @@ def read_root_file(config):
     Reads data from a ROOT file and returns a dictionary with the specified keys.
     """
 
-    required_keys = ['root_file', 'event_number', 'tree_path', 'x_key', 'y_key', 'z_key', 'time_key', 'predicted_tracks_indexes']
+    required_keys = ['root_file', 'event_number', 'tree_path', 'x_key', 'y_key', 'z_key', 'time_key', 'KTAG_key', 'predicted_tracks_indexes']
     # Give error if any required key is missing
     try:
-        root_file, event_number, tree_path, x_key, y_key, z_key, time_key, predicted_tracks_indexes = (
+        root_file, event_number, tree_path, x_key, y_key, z_key, time_key, ktag_time_key, predicted_tracks_indexes = (
             config[key] for key in required_keys
         )
     except KeyError as e:
@@ -36,6 +36,7 @@ def read_root_file(config):
             'y': tree[y_key].array(library='np')[event_number],
             'z': tree[z_key].array(library='np')[event_number],
             'time': tree[time_key].array(library='np')[event_number],
+            'ktag_time': tree[ktag_time_key].array(library='np')[event_number],
             'predicted_tracks_indexes': predicted_tracks_indexes
         }
     return data
@@ -61,13 +62,14 @@ def filter_predicted_tracks(predicted_tracks_indexes, mask):
 
     return np.array(filtered_tracks, dtype=object)
 
-def build_input (x, y, z, time,time_window,  predicted_tracks_indexes):
+def build_input (x, y, z, time, ktag_time, time_window,  predicted_tracks_indexes):
     """
     Builds input tensor for the develop visualization from the provided data.
     :param x: x coordinates
     :param y: y coordinates
     :param z: z coordinates
     :param time: time values
+    :param ktag_time: ktag time values
     :param time_window: time window for filtering
     :param predicted_tracks_indexes: indexes of predicted tracks
     """
@@ -76,6 +78,7 @@ def build_input (x, y, z, time,time_window,  predicted_tracks_indexes):
     # y =  np.concatenate(y)
     # z =  np.concatenate(z)
     # time =  np.concatenate(time)
+    time = time - ktag_time *24.95/256 # time -ktag time
     features = np.stack((x, y, z, time), axis=-1)
     features_tensor = torch.tensor(features, dtype=torch.float32)
 
