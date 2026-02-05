@@ -1,4 +1,4 @@
-Visualize the GTK station tracks and hits
+Visualize the GTK station tracks and hits in [-10, +10] nsec window.
 
 
 # Installation 
