@@ -1,7 +1,8 @@
-root_file: "/Users/leonardoplini/Desktop/Visualizations/data_to_visualize/Ntupla-Transformer.root"
+root_file: "/Users/leonardoplini/Desktop/Visualizations/data_to_visualize/Prova5Feb26.root"
+# root_file: "/Users/leonardoplini/Desktop/Visualizations/data_to_visualize/Ntupla-Transformer.root"
 # root_file: "/Users/leonardoplini/Desktop/Visualizations/data_to_visualize/Ntupla-Develop.root"
 
-event_number: 13
+event_number: 2
 tree_path : "/SlimReco;1"
 x_key: "GigaTracker/fHits/fHits.fPositionX"
 y_key: "GigaTracker/fHits/fHits.fPositionY"
