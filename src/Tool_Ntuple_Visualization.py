@@ -15,10 +15,10 @@ def read_root_file(config):
     Reads data from a ROOT file and returns a dictionary with the specified keys.
     """
 
-    required_keys = ['root_file', 'event_number', 'tree_path', 'x_key', 'y_key', 'z_key', 'time_key', 'KTAG_key', 'predicted_tracks_indexes']
+    required_keys = ['root_file', 'event_number', 'tree_path', 'x_key', 'y_key', 'z_key', 'time_key', 'KTAG_key', 'predicted_tracks_indexes', 'straw_x1_key', 'straw_y1_key', 'straw_x_slope_key', 'straw_y_slope_key']
     # Give error if any required key is missing
     try:
-        root_file, event_number, tree_path, x_key, y_key, z_key, time_key, ktag_time_key, predicted_tracks_indexes = (
+        root_file, event_number, tree_path, x_key, y_key, z_key, time_key, ktag_time_key, predicted_tracks_indexes, straw_x1_key, straw_y1_key, straw_x_slope_key, straw_y_slope_key = (
             config[key] for key in required_keys
         )
     except KeyError as e:
@@ -37,7 +37,11 @@ def read_root_file(config):
             'z': tree[z_key].array(library='np')[event_number],
             'time': tree[time_key].array(library='np')[event_number],
             'ktag_time': tree[ktag_time_key].array(library='np')[event_number],
-            'predicted_tracks_indexes': predicted_tracks_indexes
+            'predicted_tracks_indexes': predicted_tracks_indexes,
+            'straw_x1': tree[straw_x1_key].array(library='np')[event_number],
+            'straw_y1': tree[straw_y1_key].array(library='np')[event_number],
+            'straw_x_slope': tree[straw_x_slope_key].array(library='np')[event_number],
+            'straw_y_slope': tree[straw_y_slope_key].array(library='np')[event_number]
         }
     return data
 
@@ -226,6 +230,7 @@ def plot_3d_interactive_develop(pred_tracks,
                                 features_tensor_in_time_window, 
                                 features_tensor,
                                 save_path,
+                                data,
                                 marker_size=4, line_width=3, show=True):
     """
     Interactive 3D Plotly plot of predicted tracks. Unassigned hits drawn as black points.
@@ -278,6 +283,23 @@ def plot_3d_interactive_develop(pred_tracks,
             name=f"Track {i}",
             visible=True  # Default: all tracks visible
         ))
+        # add a dashed line representing the direction of the track that has the same color as the track and starts from the GTK3 hit without any slope
+        gtk3_indices = np.where(z_station[idx] == 3)[0]
+        if gtk3_indices.size > 0:
+            gtk3_idx = idx[gtk3_indices[-1]]  # prendi l'ultima hit GTK3 nella traccia
+            x0 = x[gtk3_idx]
+            y0 = z_station[gtk3_idx]
+            z0 = y[gtk3_idx]
+            fig.add_trace(go.Scatter3d(
+                x=[x0, x0],
+                y=[y0, 13.5],
+                z=[z0, z0],
+                mode='lines',
+                line=dict(width=line_width, color=base_colors[i % len(base_colors)], dash='dash'),
+                name=f"Track {i} direction",
+                showlegend=False,
+                visible=True
+            ))
 
     # 3. Define station planes for visualization
     x_lim = (-30.4, 30.4)  # Fixed limits for X
@@ -288,7 +310,7 @@ def plot_3d_interactive_develop(pred_tracks,
         fig.add_trace(go.Mesh3d(
             x=X_plane, y=[s] * 4, z=Z_plane,
             i=[0, 0], j=[1, 2], k=[2, 3],
-            opacity=0.12, color='black', showlegend=False
+            opacity=0.2, color='black', showlegend=False
         ))
 
     # 4. Add dropdown menu for track selection
@@ -339,6 +361,32 @@ def plot_3d_interactive_develop(pred_tracks,
         margin=dict(l=0, r=0, t=40, b=0),
         title="Interactive predicted tracks"
     )
+
+    # STRAW
+    # straw 1
+    theta = np.linspace(0, 2*np.pi, 200)
+    circle_x = 105 * np.cos(theta)
+    circle_y = 105 * np.sin(theta)
+
+    # Cerchio a z=11
+    fig.add_trace(go.Scatter3d(
+        x=circle_x, y=circle_y, z=np.full_like(circle_x, 11),
+        mode='lines',
+        line=dict(width=3, color='black', dash='dot'),
+        name='Straw 1 (z=11)',
+        showlegend=True
+    ))
+
+    # straw 2
+    fig.add_trace(go.Scatter3d(
+        x=circle_x, y=circle_y, z=np.full_like(circle_x, 12),
+        mode='lines',
+        line=dict(width=3, color='grey', dash='dot'),
+        name='Straw 2 (z=12)',
+        showlegend=True
+    ))
+    data = data
+
 
     # 5. Save the plot as an HTML file and optionally display it
     pio.write_html(fig, file=save_path, auto_open=False, include_plotlyjs='cdn')

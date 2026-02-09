@@ -23,13 +23,6 @@ Notice that
 
 
 The transformer and Develop Visualizations will be removed to have a single Visualization script that uses the root files coming from reconstruction in the next updates.
-# Commands to run Transformer Visualization
-1. Insert your root file in the folder data_to_visualize
-2. Use the config_file.yaml to modify the parameters
-3. Run the command ``` python Transformer_Visualization.py config_file_Transformer.yaml``` .
 
-# Commands to run Develop Visualization
-1. Insert your root file in the folder data_to_visualize
-2. Use the config_file_Develop.yaml to modify the parameters
-3. Run the command ``` python Develop_Visualization.py config_file_Develop.yaml``` .
+
 

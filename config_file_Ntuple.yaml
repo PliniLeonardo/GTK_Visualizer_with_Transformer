@@ -13,5 +13,11 @@ time_window_min: -10
 time_window_max: 10
 predicted_tracks_indexes: "/SlimReco;1/GigaTracker/fCandidates/fCandidates.fHitsIndexes"
 
+# STRAW
+straw_x1_key : "Spectrometer/fCandidates/fCandidates.fPositionXBeforeMagnet"
+straw_y1_key : "Spectrometer/fCandidates/fCandidates.fPositionYBeforeMagnet"
+straw_x_slope_key : "Spectrometer/fCandidates/fCandidates.fSlopeXBeforeMagnet"
+straw_y_slope_key : "Spectrometer/fCandidates/fCandidates.fSlopeYBeforeMagnet"
+
 plot_folder_path : "plots"
 dataframe_path : "plots"
