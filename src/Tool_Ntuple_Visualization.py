@@ -226,11 +226,52 @@ def split_hits_by_gtk(features_tensor, dataframe_path):
     return gtk_dfs
 
 
+def add_filled_disk(fig, radius, y_position, color):
+    """
+    Adds a solid 3D disk to a Plotly figure using a parametric surface.
+    """
+    # 1. Create a polar grid (r from 0 to radius, theta from 0 to 2pi)
+    r = np.linspace(0, radius, 2)            # Only start and end points needed for a flat surface
+    theta = np.linspace(0, 2*np.pi, 60)      # 60 points for a smooth circular edge
+    r_grid, theta_grid = np.meshgrid(r, theta)
+    
+    # 2. Convert Polar coordinates to Cartesian (X, Y, Z)
+    # We keep Y constant so the disk lies on the XZ plane
+    x = r_grid * np.cos(theta_grid)
+    z = r_grid * np.sin(theta_grid)
+    y = np.full_like(x, y_position)
+    
+    # 3. Add to figure as a Surface
+    fig.add_trace(go.Surface(
+        x=x, y=y, z=z,
+        colorscale=[[0, color], [1, color]], # Uniform color
+        showscale=False,                     # Hide the color bar
+        opacity=0.4,                         # Adjust transparency
+        showlegend=False
+    ))
+
+def update_gtk_layout(fig):
+        fig.update_layout(
+            scene=dict(
+                xaxis=dict(title='X', range=[-40, 40]),
+                yaxis=dict(
+                    title='Z',
+                    tickmode='array',
+                    tickvals=[0, 1, 2, 3],
+                    ticktext=['GTK0', 'GTK1', 'GTK2', 'GTK3'],
+                    range=[-1, 4]
+                ),
+                zaxis=dict(title='Y', range=[-20, 20])
+            )
+        )
+
+
 def plot_3d_interactive_develop(pred_tracks, 
                                 features_tensor_in_time_window, 
                                 features_tensor,
-                                save_path,
                                 data,
+                                config,
+                                save_path,
                                 marker_size=4, line_width=3, show=True):
     """
     Interactive 3D Plotly plot of predicted tracks. Unassigned hits drawn as black points.
@@ -292,7 +333,7 @@ def plot_3d_interactive_develop(pred_tracks,
             z0 = y[gtk3_idx]
             fig.add_trace(go.Scatter3d(
                 x=[x0, x0],
-                y=[y0, 13.5],
+                y=[y0, 11],
                 z=[z0, z0],
                 mode='lines',
                 line=dict(width=line_width, color=base_colors[i % len(base_colors)], dash='dash'),
@@ -301,91 +342,84 @@ def plot_3d_interactive_develop(pred_tracks,
                 visible=True
             ))
 
-    # 3. Define station planes for visualization
-    x_lim = (-30.4, 30.4)  # Fixed limits for X
-    y_lim = (-13.5, 13.5)  # Fixed limits for Y
-    X_plane = [x_lim[0], x_lim[1], x_lim[1], x_lim[0]]
-    Z_plane = [y_lim[0], y_lim[0], y_lim[1], y_lim[1]]
+    # # 3. Define station planes for visualization
+    # x_lim = (-150, 150)  # Fixed limits for X
+    # y_lim = (-150, 150)  # Fixed limits for Y
+
+    X_plane = [-30.4, 30.4, 30.4, -30.4]
+    Z_plane = [-13.5, -13.5, 13.5, 13.5]
     for s in sorted(np.unique(z_station)):
         fig.add_trace(go.Mesh3d(
             x=X_plane, y=[s] * 4, z=Z_plane,
             i=[0, 0], j=[1, 2], k=[2, 3],
-            opacity=0.2, color='black', showlegend=False
+            opacity=0.2, color='black', showlegend= False
         ))
+    update_gtk_layout(fig)
 
-    # 4. Add dropdown menu for track selection
-    buttons = [
-        dict(
-            label="Show All Tracks",
-            method="update",
-            args=[{"visible": [True] * len(fig.data)},  # Show all traces
-                  {"title": "All Tracks Visible"}]
-        )
-    ]
 
-    # Add a button for each track
-    for i in range(len(pred_tracks)):
-        visibility = [True] * len(fig.data)
-        # Hide all tracks except the selected one
-        for j in range(len(pred_tracks)):
-            if j != i:
-                visibility[j + 1] = False  # +1 to skip the hits in time window
-        buttons.append(
-            dict(
-                label=f"Show Track {i}",
-                method="update",
-                args=[{"visible": visibility},
-                      {"title": f"Track {i} Visible"}]
-            )
-        )
+    if config["visualizer"] == "Combined":
+        # # STRAW
+        # Straw planes
+        add_filled_disk(fig, radius=1050, y_position=11, color='blue')
+        add_filled_disk(fig, radius=1050, y_position=12, color='blue')
 
-    # Update layout with dropdown menu
-    fig.update_layout(
-        updatemenus=[
-            dict(
-                buttons=buttons,
-                direction="down",
-                showactive=True,
-                x=0.1,
-                y=1.15,
-                xanchor="left",
-                yanchor="top"
-            )
-        ],
+        scale = 1
+        dz_reale = 10000
+        # scale the images if necessary
+        x1_graph = data['straw_x1'] / scale
+        z1_graph = data['straw_y1'] / scale 
+
+        # Slope 
+        x_slope_graph = (data['straw_x_slope'] * dz_reale) / scale
+        z_slope_graph = (data['straw_y_slope'] * dz_reale) / scale
+
+        for i in range(len(x1_graph)):
+            y_vals = np.array([3,4,5,6,7,8,9,10,11, 12]) # Bastano due punti per una linea retta
+            x_vals = x1_graph[i] + x_slope_graph[i] * (y_vals - 11)
+            z_vals = z1_graph[i] + z_slope_graph[i] * (y_vals - 11)
+            
+            fig.add_trace(go.Scatter3d(
+                x=x_vals, y=y_vals, z=z_vals,
+                mode='lines',
+                line=dict(width=4)
+            ))
+            # at the intersection  between segment and the plane y=11 and y=12 add the points
+            y_intersection_11 = 11
+            x_intersection_11 = x1_graph[i] + x_slope_graph[i] * (y_intersection_11 - 11)
+            z_intersection_11 = z1_graph[i] + z_slope_graph[i] * (y_intersection_11 - 11)
+
+            y_intersection_12 = 12
+            x_intersection_12 = x1_graph[i] + x_slope_graph[i] * (y_intersection_12 - 11)
+            z_intersection_12 = z1_graph[i] + z_slope_graph[i] * (y_intersection_12 - 11)
+
+            fig.add_trace(go.Scatter3d(
+                x=[x_intersection_11], y=[y_intersection_11], z=[z_intersection_11],
+                mode='markers',
+                marker=dict(size=4, color='black'),
+                showlegend = False,
+            ))
+            fig.add_trace(go.Scatter3d(
+                x=[x_intersection_12], y=[y_intersection_12], z=[z_intersection_12],
+                mode='markers',
+                marker=dict(size=4, color='black'),
+                showlegend= False
+            ))
+
+        # 4. Update layout for better visualization
+        fig.update_layout(
         scene=dict(
-            xaxis=dict(title='X', range=x_lim),  # Fixed limits for X
-            yaxis=dict(title='GTK Station'),
-            zaxis=dict(title='Y', range=y_lim),  # Fixed limits for Y
-            aspectmode='auto'
-        ),
-        margin=dict(l=0, r=0, t=40, b=0),
-        title="Interactive predicted tracks"
+            xaxis=dict(title='X', range=[-1200, 1200]),  # o più stretto se vuoi
+            yaxis=dict(
+                title='Z',
+                tickmode='array',
+                tickvals=[0, 1, 2, 3, 11, 12],
+                ticktext=['GTK0', 'GTK1', 'GTK2', 'GTK3', 'Straw0', 'Straw2'],
+                range=[-1, 13]  # così vedi sia GTK che Straw
+            ),
+            zaxis=dict(title='Y', range=[-1200, 1200])
+        )
     )
-
-    # STRAW
-    # straw 1
-    theta = np.linspace(0, 2*np.pi, 200)
-    circle_x = 105 * np.cos(theta)
-    circle_y = 105 * np.sin(theta)
-
-    # Cerchio a z=11
-    fig.add_trace(go.Scatter3d(
-        x=circle_x, y=circle_y, z=np.full_like(circle_x, 11),
-        mode='lines',
-        line=dict(width=3, color='black', dash='dot'),
-        name='Straw 1 (z=11)',
-        showlegend=True
-    ))
-
-    # straw 2
-    fig.add_trace(go.Scatter3d(
-        x=circle_x, y=circle_y, z=np.full_like(circle_x, 12),
-        mode='lines',
-        line=dict(width=3, color='grey', dash='dot'),
-        name='Straw 2 (z=12)',
-        showlegend=True
-    ))
-    data = data
+            
 
 
     # 5. Save the plot as an HTML file and optionally display it

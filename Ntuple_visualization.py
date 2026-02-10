@@ -36,8 +36,9 @@ def main():
         predicted_tracks_indexes,
         features_tensor_in_time_window,
         features_tensor,
+        data ,
+        config,
         save_path=f"{plot_folder_path}/Interactive_plot_tracks.html",
-        data 
     )
 
 
