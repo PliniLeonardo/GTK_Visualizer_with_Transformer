@@ -15,10 +15,12 @@ def read_root_file(config):
     Reads data from a ROOT file and returns a dictionary with the specified keys.
     """
 
-    required_keys = ['root_file', 'event_number', 'tree_path', 'x_key', 'y_key', 'z_key', 'time_key', 'KTAG_key', 'predicted_tracks_indexes', 'straw_x1_key', 'straw_y1_key', 'straw_x_slope_key', 'straw_y_slope_key']
+    required_keys = ['root_file', 'event_number', 'tree_path', 'x_key', 'y_key', 'z_key', 'time_key', 'KTAG_key', 'predicted_tracks_indexes',
+                     'candidate_MomentumX_key', 'candidate_MomentumY_key',
+                     'straw_x1_key', 'straw_y1_key', 'straw_x_slope_key', 'straw_y_slope_key']
     # Give error if any required key is missing
     try:
-        root_file, event_number, tree_path, x_key, y_key, z_key, time_key, ktag_time_key, predicted_tracks_indexes, straw_x1_key, straw_y1_key, straw_x_slope_key, straw_y_slope_key = (
+        root_file, event_number, tree_path, x_key, y_key, z_key, time_key, ktag_time_key, predicted_tracks_indexes, candidate_MomentumX_key, candidate_MomentumY_key,  straw_x1_key, straw_y1_key, straw_x_slope_key, straw_y_slope_key = (
             config[key] for key in required_keys
         )
     except KeyError as e:
@@ -38,10 +40,13 @@ def read_root_file(config):
             'time': tree[time_key].array(library='np')[event_number],
             'ktag_time': tree[ktag_time_key].array(library='np')[event_number],
             'predicted_tracks_indexes': predicted_tracks_indexes,
+            'candidate_MomentumX': tree[candidate_MomentumX_key].array(library='np')[event_number],
+            'candidate_MomentumY': tree[candidate_MomentumY_key].array(library='np')[event_number],
             'straw_x1': tree[straw_x1_key].array(library='np')[event_number],
             'straw_y1': tree[straw_y1_key].array(library='np')[event_number],
             'straw_x_slope': tree[straw_x_slope_key].array(library='np')[event_number],
-            'straw_y_slope': tree[straw_y_slope_key].array(library='np')[event_number]
+            'straw_y_slope': tree[straw_y_slope_key].array(library='np')[event_number],
+            
         }
     return data
 
@@ -78,10 +83,6 @@ def build_input (x, y, z, time, ktag_time, time_window,  predicted_tracks_indexe
     :param predicted_tracks_indexes: indexes of predicted tracks
     """
 
-    # x = np.concatenate(x)
-    # y =  np.concatenate(y)
-    # z =  np.concatenate(z)
-    # time =  np.concatenate(time)
     time = time - ktag_time *24.95/256 # time -ktag time
     features = np.stack((x, y, z, time), axis=-1)
     features_tensor = torch.tensor(features, dtype=torch.float32)
@@ -324,6 +325,7 @@ def plot_3d_interactive_develop(pred_tracks,
             name=f"Track {i}",
             visible=True  # Default: all tracks visible
         ))
+
         # add a dashed line representing the direction of the track that has the same color as the track and starts from the GTK3 hit without any slope
         gtk3_indices = np.where(z_station[idx] == 3)[0]
         if gtk3_indices.size > 0:
@@ -381,7 +383,8 @@ def plot_3d_interactive_develop(pred_tracks,
             fig.add_trace(go.Scatter3d(
                 x=x_vals, y=y_vals, z=z_vals,
                 mode='lines',
-                line=dict(width=4)
+                line=dict(width=4),
+                showlegend=False,
             ))
             # at the intersection  between segment and the plane y=11 and y=12 add the points
             y_intersection_11 = 11
@@ -413,7 +416,7 @@ def plot_3d_interactive_develop(pred_tracks,
                 title='Z',
                 tickmode='array',
                 tickvals=[0, 1, 2, 3, 11, 12],
-                ticktext=['GTK0', 'GTK1', 'GTK2', 'GTK3', 'Straw0', 'Straw2'],
+                ticktext=['GTK0', 'GTK1', 'GTK2', 'GTK3', 'Straw1', 'Straw2'],
                 range=[-1, 13]  # così vedi sia GTK che Straw
             ),
             zaxis=dict(title='Y', range=[-1200, 1200])

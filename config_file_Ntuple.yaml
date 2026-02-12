@@ -14,6 +14,8 @@ KTAG_key: "EventHeader/fFineTime"
 time_window_min: -10
 time_window_max: 10
 predicted_tracks_indexes: "/SlimReco;1/GigaTracker/fCandidates/fCandidates.fHitsIndexes"
+candidate_MomentumX_key : "GigaTracker/fCandidates/fCandidates.fMomentumX"
+candidate_MomentumY_key : "GigaTracker/fCandidates/fCandidates.fMomentumY"
 
 # STRAW
 straw_x1_key : "Spectrometer/fCandidates/fCandidates.fPositionXBeforeMagnet"

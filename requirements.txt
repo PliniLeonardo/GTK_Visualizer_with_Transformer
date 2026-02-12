@@ -19,8 +19,9 @@ six==1.17.0
 sympy==1.14.0
 torch==2.2.2
 typing_extensions==4.15.0
-pytorch-lightning==2.6.0
-focal-loss-torch==0.1.2
+# pytorch-lightning==2.6.0
+# focal-loss-torch==0.1.2
 plotly==6.5.0
 uproot==5.6.8
 pandas==2.3.3
+uproot-custom==2.2.0

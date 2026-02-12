@@ -18,8 +18,7 @@ def main():
     predicted_tracks_indexes = config['predicted_tracks_indexes']
 
     data = read_root_file(config)
-        # root_file, tree_path, x_key, y_key, z_key, time_key, predicted_tracks_indexes )
-
+        
     # Build input tensor for the develop visualization
     features_tensor_in_time_window, predicted_tracks_indexes , features_tensor= build_input(
         data['x'], data['y'], data['z'], data['time'], data['ktag_time'], time_window,  data['predicted_tracks_indexes']
