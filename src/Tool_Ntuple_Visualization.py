@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.io as pio
 import plotly.graph_objects as go
+import uproot_custom as ac
 
 from ipywidgets import interact, Text
 from IPython.display import display
@@ -16,36 +17,45 @@ def read_root_file(config):
     """
 
     required_keys = ['root_file', 'event_number', 'tree_path', 'x_key', 'y_key', 'z_key', 'time_key', 'KTAG_key', 'predicted_tracks_indexes',
-                     'candidate_MomentumX_key', 'candidate_MomentumY_key',
+                     'candidate_x_key', 'candidate_y_key', 'candidate_MomentumX_key', 'candidate_MomentumY_key',
                      'straw_x1_key', 'straw_y1_key', 'straw_x_slope_key', 'straw_y_slope_key']
     # Give error if any required key is missing
     try:
-        root_file, event_number, tree_path, x_key, y_key, z_key, time_key, ktag_time_key, predicted_tracks_indexes, candidate_MomentumX_key, candidate_MomentumY_key,  straw_x1_key, straw_y1_key, straw_x_slope_key, straw_y_slope_key = (
+        root_file, event_number, tree_path, x_key, y_key, z_key, time_key, ktag_time_key, predicted_tracks_indexes, candidate_x_key, candidate_y_key, candidate_MomentumX_key, candidate_MomentumY_key,  straw_x1_key, straw_y1_key, straw_x_slope_key, straw_y_slope_key = (
             config[key] for key in required_keys
         )
     except KeyError as e:
         raise ValueError(f"Missing required key in config: {e.args[0]}")
 
+    ac.AsCustom.target_branches.add("/SlimReco:GigaTracker/fCandidates/fCandidates.fPositionX")
+    ac.AsCustom.target_branches.add("/SlimReco:GigaTracker/fCandidates/fCandidates.fPositionY")
+    with uproot.open(root_file) as f:
+        candidate_x = f["SlimReco;1/GigaTracker/fCandidates/fCandidates.fPositionX"].array()[event_number]
+        candidate_y = f["SlimReco;1/GigaTracker/fCandidates/fCandidates.fPositionY"].array()[event_number]
 
     with uproot.open(root_file) as f:
         predicted_tracks_indexes = f[predicted_tracks_indexes].array(library='np')[event_number]
         predicted_tracks_indexes = np.array([np.array(stl_vector) for stl_vector in predicted_tracks_indexes], dtype=object)
 
 
-        tree = f[tree_path]
+        # tree = f[tree_path]
+        ac.AsCustom.target_branches.add(candidate_x_key)
+        ac.AsCustom.target_branches.add(candidate_y_key)
         data = {
-            'x': tree[x_key].array(library='np')[event_number],
-            'y': tree[y_key].array(library='np')[event_number],
-            'z': tree[z_key].array(library='np')[event_number],
-            'time': tree[time_key].array(library='np')[event_number],
-            'ktag_time': tree[ktag_time_key].array(library='np')[event_number],
+            'x': f[x_key].array(library='np')[event_number],
+            'y': f[y_key].array(library='np')[event_number],
+            'z': f[z_key].array(library='np')[event_number],
+            'time': f[time_key].array(library='np')[event_number],
+            'ktag_time': f[ktag_time_key].array(library='np')[event_number],
             'predicted_tracks_indexes': predicted_tracks_indexes,
-            'candidate_MomentumX': tree[candidate_MomentumX_key].array(library='np')[event_number],
-            'candidate_MomentumY': tree[candidate_MomentumY_key].array(library='np')[event_number],
-            'straw_x1': tree[straw_x1_key].array(library='np')[event_number],
-            'straw_y1': tree[straw_y1_key].array(library='np')[event_number],
-            'straw_x_slope': tree[straw_x_slope_key].array(library='np')[event_number],
-            'straw_y_slope': tree[straw_y_slope_key].array(library='np')[event_number],
+            'candidate_x': candidate_x,
+            'candidate_y': candidate_y, 
+            'candidate_MomentumX': f[candidate_MomentumX_key].array(library='np')[event_number],
+            'candidate_MomentumY': f[candidate_MomentumY_key].array(library='np')[event_number],
+            'straw_x1': f[straw_x1_key].array(library='np')[event_number],
+            'straw_y1': f[straw_y1_key].array(library='np')[event_number],
+            'straw_x_slope': f[straw_x_slope_key].array(library='np')[event_number],
+            'straw_y_slope': f[straw_y_slope_key].array(library='np')[event_number],
             
         }
     return data
@@ -139,10 +149,6 @@ def plot_gtk_hits_from_tensor(features_tensor, plot_folder_path):
     num_nodes = len(x)
     markers = ['o', 'v', '<', '>', '^', 's', 'P', 'X', 'H', 'd'] * 20
     node_markers = {i: markers[i % len(markers)] for i in range(num_nodes)}
-
-    # Function to calculate radial distance
-    def radial_distance(x1, y1, x2, y2):
-        return np.sqrt((x1 - x2)**2 + (y1 - y2)**2)
 
     # Loop through each GTK station and plot
     for gtk in range(4):
@@ -326,23 +332,36 @@ def plot_3d_interactive_develop(pred_tracks,
             visible=True  # Default: all tracks visible
         ))
 
-        # add a dashed line representing the direction of the track that has the same color as the track and starts from the GTK3 hit without any slope
-        gtk3_indices = np.where(z_station[idx] == 3)[0]
-        if gtk3_indices.size > 0:
-            gtk3_idx = idx[gtk3_indices[-1]]  # prendi l'ultima hit GTK3 nella traccia
-            x0 = x[gtk3_idx]
-            y0 = z_station[gtk3_idx]
-            z0 = y[gtk3_idx]
+
+        # Supponiamo che z_GTK3 = 102400 (cm) e z_Straw1 = 183000 (cm)
+        # Per ogni candidato
+        dz = 11 - 3  # distanza tra GTK3 (3) e Straw1 (11) sull'asse delle stazioni
+        for x0, z0, px, py in zip(data['candidate_x'], data['candidate_y'], data['candidate_MomentumX'], data['candidate_MomentumY']):
+            # Prendi solo l'ultimo punto di ogni candidato
+            x_last = x0[-1]
+            z_last = z0[-1]
+
+            x1 = x_last + px * dz
+            z1 = z_last + p * dz
+
+            # Punto su GTK3
             fig.add_trace(go.Scatter3d(
-                x=[x0, x0],
-                y=[y0, 11],
-                z=[z0, z0],
-                mode='lines',
-                line=dict(width=line_width, color=base_colors[i % len(base_colors)], dash='dash'),
-                name=f"Track {i} direction",
-                showlegend=False,
-                visible=True
+                x=[x_last], y=[3], z=[z_last],
+                mode='markers',
+                marker=dict(size=4, color='black'),
+                name='Candidate GTK3'
             ))
+
+            # Linea fino a Straw1
+            fig.add_trace(go.Scatter3d(
+                x=[x_last, x1], y=[3, 11], z=[z_last, z1],
+                mode='lines',
+                line=dict(width=2, color='red', dash='dash'),
+                name='Prolungamento'
+            ))
+
+    
+    
 
     # # 3. Define station planes for visualization
     # x_lim = (-150, 150)  # Fixed limits for X

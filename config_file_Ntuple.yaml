@@ -6,22 +6,25 @@ visualizer: "Combined" # "Combined", "GTK"
 
 event_number: 0
 tree_path : "/SlimReco;1"
-x_key: "GigaTracker/fHits/fHits.fPositionX"
-y_key: "GigaTracker/fHits/fHits.fPositionY"
-z_key: "GigaTracker/fHits/fHits.fPositionZ"
-time_key: "GigaTracker/fHits/fHits.fTime"
-KTAG_key: "EventHeader/fFineTime"
+x_key: "/SlimReco;1/GigaTracker/fHits/fHits.fPositionX"
+y_key: "/SlimReco;1/GigaTracker/fHits/fHits.fPositionY"
+z_key: "/SlimReco;1/GigaTracker/fHits/fHits.fPositionZ"
+time_key: "/SlimReco;1/GigaTracker/fHits/fHits.fTime"
+KTAG_key: "/SlimReco;1/EventHeader/fFineTime"
 time_window_min: -10
 time_window_max: 10
 predicted_tracks_indexes: "/SlimReco;1/GigaTracker/fCandidates/fCandidates.fHitsIndexes"
-candidate_MomentumX_key : "GigaTracker/fCandidates/fCandidates.fMomentumX"
-candidate_MomentumY_key : "GigaTracker/fCandidates/fCandidates.fMomentumY"
+candidate_x_key : "/SlimReco;1/GigaTracker/fCandidates/fCandidates.fPositionX"
+candidate_y_key : "/SlimReco;1/GigaTracker/fCandidates/fCandidates.fPositionY"
+candidate_MomentumX_key : "/SlimReco;1/GigaTracker/fCandidates/fCandidates.fMomentumX"
+candidate_MomentumY_key : "/SlimReco;1/GigaTracker/fCandidates/fCandidates.fMomentumY"
+
 
 # STRAW
-straw_x1_key : "Spectrometer/fCandidates/fCandidates.fPositionXBeforeMagnet"
-straw_y1_key : "Spectrometer/fCandidates/fCandidates.fPositionYBeforeMagnet"
-straw_x_slope_key : "Spectrometer/fCandidates/fCandidates.fSlopeXBeforeMagnet"
-straw_y_slope_key : "Spectrometer/fCandidates/fCandidates.fSlopeYBeforeMagnet"
+straw_x1_key : "/SlimReco;1/Spectrometer/fCandidates/fCandidates.fPositionXBeforeMagnet"
+straw_y1_key : "/SlimReco;1/Spectrometer/fCandidates/fCandidates.fPositionYBeforeMagnet"
+straw_x_slope_key : "/SlimReco;1/Spectrometer/fCandidates/fCandidates.fSlopeXBeforeMagnet"
+straw_y_slope_key : "/SlimReco;1/Spectrometer/fCandidates/fCandidates.fSlopeYBeforeMagnet"
 
 plot_folder_path : "plots"
 dataframe_path : "plots"
