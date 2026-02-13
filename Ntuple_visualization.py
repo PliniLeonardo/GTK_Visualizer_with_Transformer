@@ -19,25 +19,23 @@ def main():
 
     data = read_root_file(config)
         
-    # Build input tensor for the develop visualization
+    # Build input tensor for visualization
     features_tensor_in_time_window, predicted_tracks_indexes , features_tensor= build_input(
         data['x'], data['y'], data['z'], data['time'], data['ktag_time'], time_window,  data['predicted_tracks_indexes']
     )
 
-    # Visualize the data
-    plot_folder_path = config['plot_folder_path']
-    plot_gtk_hits_from_tensor(features_tensor_in_time_window, plot_folder_path)
-
-
+    # Visualize the data on the GTK plane
+    plot_gtk_hits_from_tensor(features_tensor_in_time_window, config['plot_folder_path'])
     gtk_dfs = split_hits_by_gtk(features_tensor_in_time_window, config['dataframe_path'])
 
+    # Visualize the data in 3D interactive plot
     plot_3d_interactive_develop(
         predicted_tracks_indexes,
         features_tensor_in_time_window,
         features_tensor,
         data ,
         config,
-        save_path=f"{plot_folder_path}/Interactive_plot_tracks.html",
+        save_path=f"{config['plot_folder_path']}/Interactive_plot_tracks.html",
     )
 
 

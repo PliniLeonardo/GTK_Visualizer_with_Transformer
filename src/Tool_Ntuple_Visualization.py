@@ -7,8 +7,6 @@ import pandas as pd
 import plotly.io as pio
 import plotly.graph_objects as go
 import uproot_custom as ac
-
-from ipywidgets import interact, Text
 from IPython.display import display
 
 def read_root_file(config):
@@ -118,77 +116,53 @@ def plot_gtk_hits_from_tensor(features_tensor, plot_folder_path):
     """
     Plots the hits on 4 different GTK planes using features_tensor, highlighting overlapping hits
     and positioning times around the hits to avoid overlap.
-
-    Args:
-        features_tensor (torch.Tensor): Tensor with columns:
-            - x: x-coordinate of the hit
-            - y: y-coordinate of the hit
-            - gtk_station: GTK station (0, 1, 2, 3)
-            - t: time of the hit
-
-    Returns:
-        None
     """
-    # Convert tensor to numpy array for easier manipulation
     features = features_tensor.numpy()
-
-    # Extract columns
     x = features[:, 0]
     y = features[:, 1]
     gtk_stations = features[:, 2].astype(float)
     t = features[:, 3]
 
-    # Create subplots for the 4 GTK stations in a 2x2 grid
-    fig, axs = plt.subplots(2, 2, figsize=(14, 14))  # Adjust figsize for larger plots
-    axs = axs.flatten()  # Flatten the 2x2 grid for easier indexing
+    fig, axs = plt.subplots(2, 2, figsize=(14, 14))
+    axs = axs.flatten()
 
-    # Definisci i limiti fissi per X e Y
     x_lim = (-30.4, 30.4)
     y_lim = (-13.5, 13.5)
-
-    # Set unique markers for each node
-    num_nodes = len(x)
     markers = ['o', 'v', '<', '>', '^', 's', 'P', 'X', 'H', 'd'] * 20
-    node_markers = {i: markers[i % len(markers)] for i in range(num_nodes)}
 
-    # Loop through each GTK station and plot
-    for gtk in range(4):
-        gtk_hits = features[gtk_stations == gtk]
+    gtk_values = [0.8, 1, 1.6, 3]
+    for idx, gtk in enumerate(gtk_values):
+        gtk_hits = features[np.isclose(gtk_stations, gtk)]
         for i, hit in enumerate(gtk_hits):
-            # Check for nearby hits (distance ≤ 1)
             distances = np.sqrt((gtk_hits[:, 0] - hit[0])**2 + (gtk_hits[:, 1] - hit[1])**2)
             close_hits = distances <= 1
 
-            if close_hits.sum() > 1:  # Highlight overlapping hits
-                axs[gtk].scatter(hit[0], hit[1],
-                                 c='red',  # Highlight color
-                                 marker=node_markers[i],
+            if close_hits.sum() > 1:
+                axs[idx].scatter(hit[0], hit[1],
+                                 c='red',
+                                 marker=markers[i % len(markers)],
                                  s=100, alpha=0.6, edgecolors='black')
-            else:  # Normal hits
-                axs[gtk].scatter(hit[0], hit[1],
-                                 c='blue',  # Default color
-                                 marker=node_markers[i],
+            else:
+                axs[idx].scatter(hit[0], hit[1],
+                                 c='blue',
+                                 marker=markers[i % len(markers)],
                                  s=100, edgecolors='black')
 
-            # Position times around the hit
             nearby_hits = gtk_hits[close_hits]
-            offsets = [(0.4, 0.4), (-0.4, -0.4), (-0.4, 0.4), (0.4, -0.4)]  # Top-right, bottom-left, top-left, bottom-right
+            offsets = [(0.4, 0.4), (-0.4, -0.4), (-0.4, 0.4), (0.4, -0.4)]
             for j, nearby_hit in enumerate(nearby_hits):
-                if j < len(offsets):  # Limit to 4 positions
+                if j < len(offsets):
                     dx, dy = offsets[j]
-                    axs[gtk].text(nearby_hit[0] + dx, nearby_hit[1] + dy, round(nearby_hit[3], 2), fontsize=10)
+                    axs[idx].text(nearby_hit[0] + dx, nearby_hit[1] + dy, round(nearby_hit[3], 2), fontsize=10)
 
-        axs[gtk].set_xlabel('x')
-        axs[gtk].set_ylabel('y')
-        axs[gtk].set_title(f'GTK{gtk}', pad=20)
-        axs[gtk].grid()
-        axs[gtk].set_xlim(x_lim)  # Imposta i limiti fissi per X
-        axs[gtk].set_ylim(y_lim)  # Imposta i limiti fissi per Y
+        axs[idx].set_xlabel('x')
+        axs[idx].set_ylabel('y')
+        axs[idx].set_title(f'GTK{idx}', pad=20)
+        axs[idx].grid()
+        axs[idx].set_xlim(x_lim)
+        axs[idx].set_ylim(y_lim)
 
-    plt.tight_layout()  # Adjust layout to prevent overlap
-    # plt.show()
-
-    # Save plot into the folder "plots"
+    plt.tight_layout()
     if not os.path.exists(plot_folder_path):
         os.makedirs(plot_folder_path)
     fig.savefig(os.path.join(plot_folder_path, 'GTK_hits_visualization.png'), dpi=300)
@@ -197,35 +171,19 @@ def plot_gtk_hits_from_tensor(features_tensor, plot_folder_path):
 def split_hits_by_gtk(features_tensor, dataframe_path):
     """
     Splits the hits in features_tensor into 4 DataFrames, one for each GTK station.
-
-    Args:
-        features_tensor (torch.Tensor): Tensor with columns:
-            - x: x-coordinate of the hit
-            - y: y-coordinate of the hit
-            - z: z-coordinate of the hit (original GTK station mapping)
-            - time: time of the hit
-
-    Returns:
-        dict: A dictionary with keys 'GTK0', 'GTK1', 'GTK2', 'GTK3' and values as DataFrames.
     """
-    # Convert tensor to numpy array for easier manipulation
     features = features_tensor.numpy()
-
-    # Extract columns
     x = features[:, 0]
     y = features[:, 1]
     z = features[:, 2]
     time = features[:, 3]
-
-    # Create a DataFrame from the features
     df = pd.DataFrame({'x': x, 'y': y, 'z': z, 'time': time})
 
-    # Split the DataFrame by GTK station
+    gtk_values = [0.8, 1, 1.6, 3]
     gtk_dfs = {}
-    for gtk in range(4):
-        gtk_dfs[f'GTK{gtk}'] = df[df['z'] == gtk].reset_index(drop=True)
+    for i, gtk in enumerate(gtk_values):
+        gtk_dfs[f'GTK{i}'] = df[np.isclose(df['z'], gtk)].reset_index(drop=True)
 
-    # Save DataFrames into the specified folder
     if not os.path.exists(dataframe_path):
         os.makedirs(dataframe_path)
     for gtk, gtk_df in gtk_dfs.items():
