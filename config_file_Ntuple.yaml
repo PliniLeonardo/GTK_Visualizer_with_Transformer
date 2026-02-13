@@ -1,5 +1,5 @@
-# root_file: "/Users/leonardoplini/Desktop/Visualizations/data_to_visualize/Prova5Feb26.root"
-root_file: "/Users/leonardoplini/Desktop/Visualizations/data_to_visualize/Ntupla-Transformer.root"
+root_file: "/Users/leonardoplini/Desktop/Visualizations/data_to_visualize/Prova5Feb26.root"
+# root_file: "/Users/leonardoplini/Desktop/Visualizations/data_to_visualize/Ntupla-Transformer.root"
 # root_file: "/Users/leonardoplini/Desktop/Visualizations/data_to_visualize/Ntupla-Develop.root"
 
 visualizer: "Combined" # "Combined", "GTK"

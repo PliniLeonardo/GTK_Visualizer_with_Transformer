@@ -3,3 +3,4 @@ Visualization_environment/
 plots/
 __pycache__/
 data_to_visualize/
+!data_to_visualize/Prova5Feb26.root
