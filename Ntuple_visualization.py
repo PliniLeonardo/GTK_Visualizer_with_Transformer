@@ -17,7 +17,7 @@ def main():
     data = read_root_file(config)
         
     # Build input tensor for visualization
-    features_tensor_in_time_window, predicted_tracks_indexes , features_tensor= build_input(data)
+    features_tensor_in_time_window, predicted_tracks_indexes , features_tensor = build_input(data)
 
     # Visualize the data on the GTK plane
     plot_gtk_hits_from_tensor(features_tensor_in_time_window, config['plot_folder_path'])
@@ -36,3 +36,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

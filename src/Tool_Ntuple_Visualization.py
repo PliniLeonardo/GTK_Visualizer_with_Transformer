@@ -8,6 +8,8 @@ import plotly.io as pio
 import plotly.graph_objects as go
 import uproot_custom as ac
 from IPython.display import display
+import matplotlib.cm as cm 
+import matplotlib.colors as mcolors
 
 def read_root_file(config):
     """
@@ -236,6 +238,17 @@ def add_filled_disk(fig, radius, y_position, color):
         line=dict(color='blue', width=6, dash='dash'),
         showlegend=False
     ))
+    # 5. Add border (contour) of the disk
+    theta_border = np.linspace(0, 2*np.pi, 100)
+    x_border = radius * np.cos(theta_border)
+    z_border = radius * np.sin(theta_border)
+    y_border = np.full_like(x_border, y_position)
+    fig.add_trace(go.Scatter3d(
+        x=x_border, y=y_border, z=z_border,
+        mode='lines',
+        line=dict(color='black', width=4),
+        showlegend=False
+    ))
 
 def update_gtk_layout(fig):
         fig.update_layout(
@@ -273,6 +286,13 @@ def plot_3d_interactive_develop(pred_tracks,
         show: Whether to display the plot in the browser
     """
 
+    # COLORS
+    colorscale = 'rainbow'
+    cmin = -10
+    cmax = 10
+    norm = mcolors.Normalize(vmin=cmin, vmax=cmax)
+    cmap = cm.get_cmap(colorscale)
+
     # Convert tensors to numpy arrays for easier manipulation
     features_in_time_window = features_tensor_in_time_window.numpy() if hasattr(features_tensor_in_time_window, "numpy") else np.asarray(features_tensor_in_time_window)
     features = features_tensor.numpy() if hasattr(features_tensor, "numpy") else np.asarray(features_tensor)
@@ -286,17 +306,23 @@ def plot_3d_interactive_develop(pred_tracks,
     x = features[:, 0]
     y = features[:, 1]
     z_station = features[:, 2].astype(float)
+    times = features[:, 3] #- data['ktag_time'] *24.95/256 
 
     fig = go.Figure()
-    base_colors = ['red', 'blue', 'green', 'orange', 'purple', 'cyan', 'magenta', 'brown', 'grey', 'pink']
-
+    
+    color_rgb = cmap(norm(times))
+    color_hex = np.array([mcolors.to_hex(c) for c in color_rgb])
+    
     # 1. Plot all hits in the time window as black points
     fig.add_trace(go.Scatter3d(
         x=x_in_time, y= z_station_in_time, z=y_in_time, 
         mode='markers',
-        marker=dict(size=marker_size, color='black'),
-        name='Hits in time window',
-        visible=True  
+        marker=dict(
+            size=marker_size,
+            color=color_hex
+        ),
+        name = 'Hits in Time Window',
+        showlegend= True,  
     ))
 
     # 2. Plot tracks by connecting hits
@@ -307,10 +333,9 @@ def plot_3d_interactive_develop(pred_tracks,
         fig.add_trace(go.Scatter3d(
             x=x[idx], y= z_station[idx] , z=y[idx],
             mode='lines+markers',
-            line=dict(width=line_width, color=base_colors[i % len(base_colors)]),
-            marker=dict(size=marker_size),
-            name=f"Track {i}",
-            visible=True  # Default: all tracks visible
+            line=dict(width=line_width, color= color_hex[idx]),
+            marker=dict(size=marker_size, color= color_hex[idx]),
+            showlegend=False,
         ))
 
 
@@ -323,9 +348,37 @@ def plot_3d_interactive_develop(pred_tracks,
         fig.add_trace(go.Mesh3d(
             x=X_plane, y=[s] * 4, z=Z_plane,
             i=[0, 0], j=[1, 2], k=[2, 3],
-            opacity=0.12, color='black', showlegend=False
+            opacity=0.1, color='black', showlegend=False
+        ))
+        fig.add_trace(go.Scatter3d(
+            x=[X_plane[0], X_plane[1], X_plane[2], X_plane[3], X_plane[0]],
+            y=[s, s, s, s, s],
+            z=[Z_plane[0], Z_plane[1], Z_plane[2], Z_plane[3], Z_plane[0]],
+            mode='lines',
+            line=dict(color='black', width=4),
+            showlegend=False
         ))
 
+    # Add invisible scatter to plot colorbar on the left
+    fig.add_trace(go.Scatter3d(
+        x=[None], y=[None], z=[None],  
+        mode='markers',
+        marker=dict(
+            size=0.1,
+            color=[-10, 0, 10],  
+            colorscale=colorscale,
+            cmin=cmin,
+            cmax=cmax,
+            colorbar=dict(
+                title='Time (ns)',
+                thickness=20,
+                len=0.5,
+                x=0.02  
+            )
+        ),
+        showlegend=False
+    ))
+    
     update_gtk_layout(fig)
 
 
@@ -334,8 +387,9 @@ def plot_3d_interactive_develop(pred_tracks,
     # select candidates in the time window
     mask_candidates = (candidates_time >= config['time_window_min']) & (candidates_time <= config['time_window_max'])
     dz = (11 - 3) * 10000  # distance between GTK3 and Straw1 is approximately 80 m= 80 0000 mm 
+    color_rgb = cmap(norm(candidates_time))
+    color_hex = np.array([mcolors.to_hex(c) for c in color_rgb])
 
-    j=0
     for i in range(len(data['candidate_x'])):
         if mask_candidates[i]: 
             # Take candidate position on GTK3
@@ -350,21 +404,18 @@ def plot_3d_interactive_develop(pred_tracks,
             fig.add_trace(go.Scatter3d(
                 x=[x0], y=[3], z=[y0],
                 mode='markers',
-                marker=dict(size=6, color=base_colors[j % len(base_colors)], symbol="diamond", opacity=0.5),
-                name=f'Candidate {i}',
-                showlegend=True
+                marker = dict(size= 4, color= color_hex[i], symbol="diamond"),
+                showlegend= False
             ))
 
             fig.add_trace(go.Scatter3d(
                 x=[x0, x1], y=[3, 11], z=[y0, y1],
                 mode='lines',
-                line=dict(width=3, color=base_colors[j % len(base_colors)]),
+                line=dict(width =line_width, color= color_hex[i]),
                 name=f"Candidate {i}",
-                showlegend=False
+                showlegend= True
             ))
-            j += 1
-        
-        
+           
 
 
 
