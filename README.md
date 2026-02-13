@@ -4,7 +4,7 @@ Visualize the GTK station tracks and hits in [-10, +10] nsec window.
 # Installation 
 
 Execute the script ```./setup_env.sh``` to create the virtual environment.
-Activate the environment  ```source VisualizationGTK_environment/bin/activate```
+Activate the environment  ```source Visualization_environment/bin/activate```
 
 
 

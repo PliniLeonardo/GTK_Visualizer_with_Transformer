@@ -3,7 +3,7 @@
 # filepath: /Users/leonardoplini/Desktop/Visualizations/setup_env.sh
 
 # Name of the virtual environment
-VENV_DIR="VisualizationGTK_environment"
+VENV_DIR="Visualization_environment"
 
 # Path to Python 3.11 (modifica questo percorso se necessario)
 PYTHON_BIN="/usr/local/bin/python3.11"

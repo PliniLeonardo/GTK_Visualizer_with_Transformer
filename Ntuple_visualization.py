@@ -38,8 +38,5 @@ def main():
         save_path=f"{config['plot_folder_path']}/Interactive_plot_tracks.html",
     )
 
-
-    print (" DAJEEE ")
-
 if __name__ == "__main__":
     main()

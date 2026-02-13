@@ -107,7 +107,7 @@ def build_input (x, y, z, time, ktag_time, time_window,  predicted_tracks_indexe
     features_tensor_in_time_window[:, 2] = torch.tensor([z_mapping.get(int(val), val) for val in features_tensor_in_time_window[:, 2].numpy()])
 
     predicted_tracks_indexes_in_time = filter_predicted_tracks(predicted_tracks_indexes, mask.numpy())
-    features_tensor_in_time_window = torch.tensor(features_tensor_in_time_window, dtype=torch.float32)
+    features_tensor_in_time_window = features_tensor_in_time_window.float()
     
     return features_tensor_in_time_window, predicted_tracks_indexes_in_time, features_tensor
 
