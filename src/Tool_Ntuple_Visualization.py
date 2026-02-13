@@ -375,26 +375,6 @@ def plot_3d_interactive_develop(pred_tracks,
             line=dict(color='black', width=4),
             showlegend=False
         ))
-
-    # # Add invisible scatter to plot colorbar on the left
-    # fig.add_trace(go.Scatter3d(
-    #     x=[None], y=[None], z=[None],  
-    #     mode='markers',
-    #     marker=dict(
-    #         size=0.1,
-    #         color=[-10, 0, 10],  
-    #         colorscale=colorscale,
-    #         cmin=cmin,
-    #         cmax=cmax,
-    #         colorbar=dict(
-    #             title='Time (ns)',
-    #             thickness=20,
-    #             len=0.5,
-    #             x=0.02  
-    #         )
-    #     ),
-    #     showlegend=False
-    # ))
     
     update_gtk_layout(fig)
 
@@ -487,7 +467,8 @@ def plot_3d_interactive_develop(pred_tracks,
                 x=[x_intersection_11], y=[y_intersection_11], z=[z_intersection_11],
                 mode='markers',
                 marker=dict(size=4, color='black'),
-                showlegend = False,
+                name =f'Straw hit {i} ',
+                showlegend = True,
             ))
             fig.add_trace(go.Scatter3d(
                 x=[x_intersection_12], y=[y_intersection_12], z=[z_intersection_12],
