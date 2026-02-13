@@ -14,15 +14,9 @@ Activate the environment  ```source Visualization_environment/bin/activate```
 3. Run the command ``` python Ntuple_Visualization.py config_file_Ntuple.yaml``` .
 
 You will find the following outputs in the folder plots
-* Interactive_plot_tracks.html: interactive 3D plot of the tracks
+* Interactive_plot_tracks.html: interactive 3D plot of the tracks on the GTK stations and Straw by using the argument visualizer: "Combined" in the config file. To visualize only the GTK stations, use visualizer: "GTK" in the config file.
 * GTK_hits_visualization.png: 4 panels visualization that displays also the time of each hit. Very near hits are represented in red
 * GTK0_hits.csv, GTK1_hits.csv, GTK2_hits.csv, GTK3_hits.csv: csv files with x,y and time for each hit divided by GTK station
-
-Notice that
-- the hits are not clustered and the pattern recognition method is applied on top of unclustered hits. 
-
-
-The transformer and Develop Visualizations will be removed to have a single Visualization script that uses the root files coming from reconstruction in the next updates.
 
 
 
