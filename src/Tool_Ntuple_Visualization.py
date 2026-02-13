@@ -15,11 +15,11 @@ def read_root_file(config):
     """
 
     required_keys = ['root_file', 'event_number', 'tree_path', 'x_key', 'y_key', 'z_key', 'time_key', 'KTAG_key', 'predicted_tracks_indexes',
-                     'candidate_x_key', 'candidate_y_key', 'candidate_MomentumX_key', 'candidate_MomentumY_key', 'candidate_MomentumZ_key',
+                     'candidate_x_key', 'candidate_y_key', 'candidate_MomentumX_key', 'candidate_MomentumY_key', 'candidate_MomentumZ_key', 'candidate_time',
                      'straw_x1_key', 'straw_y1_key', 'straw_x_slope_key', 'straw_y_slope_key']
     # Give error if any required key is missing
     try:
-        root_file, event_number, tree_path, x_key, y_key, z_key, time_key, ktag_time_key, predicted_tracks_indexes, candidate_x_key, candidate_y_key, candidate_MomentumX_key, candidate_MomentumY_key, candidate_MomentumZ_key, straw_x1_key, straw_y1_key, straw_x_slope_key, straw_y_slope_key = (
+        root_file, event_number, tree_path, x_key, y_key, z_key, time_key, ktag_time_key, predicted_tracks_indexes, candidate_x_key, candidate_y_key, candidate_MomentumX_key, candidate_MomentumY_key, candidate_MomentumZ_key, candidate_time_key, straw_x1_key, straw_y1_key, straw_x_slope_key, straw_y_slope_key = (
             config[key] for key in required_keys
         )
     except KeyError as e:
@@ -51,10 +51,13 @@ def read_root_file(config):
             'candidate_MomentumX': f[candidate_MomentumX_key].array(library='np')[event_number],
             'candidate_MomentumY': f[candidate_MomentumY_key].array(library='np')[event_number],
             'candidate_MomentumZ': f[candidate_MomentumZ_key].array(library='np')[event_number],
+            'candidate_time': f[candidate_time_key].array(library='np')[event_number],
             'straw_x1': f[straw_x1_key].array(library='np')[event_number],
             'straw_y1': f[straw_y1_key].array(library='np')[event_number],
             'straw_x_slope': f[straw_x_slope_key].array(library='np')[event_number],
             'straw_y_slope': f[straw_y_slope_key].array(library='np')[event_number],
+            'time_window_min': config['time_window_min'],
+            'time_window_max': config['time_window_max']
             
         }
     return data
@@ -80,7 +83,7 @@ def filter_predicted_tracks(predicted_tracks_indexes, mask):
 
     return np.array(filtered_tracks, dtype=object)
 
-def build_input (x, y, z, time, ktag_time, time_window,  predicted_tracks_indexes):
+def build_input (data):
     """
     Builds input tensor for the develop visualization from the provided data.
     :param x: x coordinates
@@ -91,16 +94,21 @@ def build_input (x, y, z, time, ktag_time, time_window,  predicted_tracks_indexe
     :param time_window: time window for filtering
     :param predicted_tracks_indexes: indexes of predicted tracks
     """
+    x = data['x']
+    y = data['y']
+    z = data['z']
+    time = data['time']
+    ktag_time = data['ktag_time']
+    start = data['time_window_min']
+    end = data['time_window_max']
+    predicted_tracks_indexes = data['predicted_tracks_indexes']
 
     time = time - ktag_time *24.95/256 # time -ktag time
     features = np.stack((x, y, z, time), axis=-1)
     features_tensor = torch.tensor(features, dtype=torch.float32)
 
-
-    if time_window:
-        start, end = time_window
-        mask = (features_tensor[:, 3] >= start) & (features_tensor[:, 3] <= end)
-        features_tensor_in_time_window = features_tensor[mask]
+    mask = (features_tensor[:, 3] >= start) & (features_tensor[:, 3] <= end)
+    features_tensor_in_time_window = features_tensor[mask]
 
     z_mapping =  {79575: 0.8 , 79625: 1, 86820: 1.6, 102400: 3}
     features_tensor[:, 2] = torch.tensor([z_mapping.get(int(val), val) for val in features_tensor[:, 2].numpy()])
@@ -322,33 +330,40 @@ def plot_3d_interactive_develop(pred_tracks,
 
 
     # 4. Candidates positions on GTK3
+    candidates_time = data['candidate_time'] - data['ktag_time'] *24.95/256
+    # select candidates in the time window
+    mask_candidates = (candidates_time >= config['time_window_min']) & (candidates_time <= config['time_window_max'])
     dz = (11 - 3) * 10000  # distance between GTK3 and Straw1 is approximately 80 m= 80 0000 mm 
 
+    j=0
     for i in range(len(data['candidate_x'])):
-        # Take candidate position on GTK3
-        x0 = data['candidate_x'][i][-1] 
-        y0 = data['candidate_y'][i][-1] 
-        slope_x = data['candidate_MomentumX'][i] / data['candidate_MomentumZ'][i] 
-        slope_y = data['candidate_MomentumY'][i] / data['candidate_MomentumZ'][i] 
-        x1 = x0 + -slope_x * dz # THANKS MATT: pay attention to the coordinate system! positives x means that the beam goes to the left
-        y1 = y0 + slope_y * dz
+        if mask_candidates[i]: 
+            # Take candidate position on GTK3
+            x0 = data['candidate_x'][i][-1] 
+            y0 = data['candidate_y'][i][-1] 
+            slope_x = data['candidate_MomentumX'][i] / data['candidate_MomentumZ'][i] 
+            slope_y = data['candidate_MomentumY'][i] / data['candidate_MomentumZ'][i] 
+            x1 = x0 + -slope_x * dz # THANKS MATT: pay attention to the coordinate system! positives x means that the beam goes to the left
+            y1 = y0 + slope_y * dz
 
-        # Marker on GTK3 to represent the candidate position 
-        fig.add_trace(go.Scatter3d(
-            x=[x0], y=[3], z=[y0],
-            mode='markers',
-            marker=dict(size=6, color=base_colors[i % len(base_colors)], symbol="diamond", opacity=0.5),
-            name=f'Candidate {i}',
-            showlegend=True
-        ))
+            # Marker on GTK3 to represent the candidate position 
+            fig.add_trace(go.Scatter3d(
+                x=[x0], y=[3], z=[y0],
+                mode='markers',
+                marker=dict(size=6, color=base_colors[j % len(base_colors)], symbol="diamond", opacity=0.5),
+                name=f'Candidate {i}',
+                showlegend=True
+            ))
 
-        fig.add_trace(go.Scatter3d(
-            x=[x0, x1], y=[3, 11], z=[y0, y1],
-            mode='lines',
-            line=dict(width=3, color=base_colors[i % len(base_colors)]),
-            name=f"Candidate {i}",
-            showlegend=False
-        ))
+            fig.add_trace(go.Scatter3d(
+                x=[x0, x1], y=[3, 11], z=[y0, y1],
+                mode='lines',
+                line=dict(width=3, color=base_colors[j % len(base_colors)]),
+                name=f"Candidate {i}",
+                showlegend=False
+            ))
+            j += 1
+        
         
 
 
@@ -424,3 +439,4 @@ def plot_3d_interactive_develop(pred_tracks,
     if show:
         fig.show()
     return fig
+

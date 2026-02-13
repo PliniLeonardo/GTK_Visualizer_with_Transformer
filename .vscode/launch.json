@@ -11,7 +11,7 @@
                 "${workspaceFolder}/config_file_Ntuple.yaml"
             ],
             "justMyCode": true,
-            "python": "/Users/leonardoplini/Desktop/Visualizations/VisualizationGTK_environment/bin/python"
+            "python": "/Users/leonardoplini/Desktop/Visualizations/Visualization_environment/bin/python"
         },
 
     ]
