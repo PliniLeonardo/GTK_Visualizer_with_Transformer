@@ -17,11 +17,11 @@ def read_root_file(config):
     """
 
     required_keys = ['root_file', 'event_number', 'tree_path', 'x_key', 'y_key', 'z_key', 'time_key', 'KTAG_key', 'predicted_tracks_indexes',
-                     'candidate_x_key', 'candidate_y_key', 'candidate_MomentumX_key', 'candidate_MomentumY_key',
+                     'candidate_x_key', 'candidate_y_key', 'candidate_MomentumX_key', 'candidate_MomentumY_key', 'candidate_MomentumZ_key',
                      'straw_x1_key', 'straw_y1_key', 'straw_x_slope_key', 'straw_y_slope_key']
     # Give error if any required key is missing
     try:
-        root_file, event_number, tree_path, x_key, y_key, z_key, time_key, ktag_time_key, predicted_tracks_indexes, candidate_x_key, candidate_y_key, candidate_MomentumX_key, candidate_MomentumY_key,  straw_x1_key, straw_y1_key, straw_x_slope_key, straw_y_slope_key = (
+        root_file, event_number, tree_path, x_key, y_key, z_key, time_key, ktag_time_key, predicted_tracks_indexes, candidate_x_key, candidate_y_key, candidate_MomentumX_key, candidate_MomentumY_key, candidate_MomentumZ_key, straw_x1_key, straw_y1_key, straw_x_slope_key, straw_y_slope_key = (
             config[key] for key in required_keys
         )
     except KeyError as e:
@@ -52,6 +52,7 @@ def read_root_file(config):
             'candidate_y': candidate_y, 
             'candidate_MomentumX': f[candidate_MomentumX_key].array(library='np')[event_number],
             'candidate_MomentumY': f[candidate_MomentumY_key].array(library='np')[event_number],
+            'candidate_MomentumZ': f[candidate_MomentumZ_key].array(library='np')[event_number],
             'straw_x1': f[straw_x1_key].array(library='np')[event_number],
             'straw_y1': f[straw_y1_key].array(library='np')[event_number],
             'straw_x_slope': f[straw_x_slope_key].array(library='np')[event_number],
@@ -103,7 +104,7 @@ def build_input (x, y, z, time, ktag_time, time_window,  predicted_tracks_indexe
         mask = (features_tensor[:, 3] >= start) & (features_tensor[:, 3] <= end)
         features_tensor_in_time_window = features_tensor[mask]
 
-    z_mapping =  {79575: 0, 79625: 1, 86820: 2, 102400: 3}
+    z_mapping =  {79575: 0.8 , 79625: 1, 86820: 1.6, 102400: 3}
     features_tensor[:, 2] = torch.tensor([z_mapping.get(int(val), val) for val in features_tensor[:, 2].numpy()])
     features_tensor_in_time_window[:, 2] = torch.tensor([z_mapping.get(int(val), val) for val in features_tensor_in_time_window[:, 2].numpy()])
 
@@ -134,7 +135,7 @@ def plot_gtk_hits_from_tensor(features_tensor, plot_folder_path):
     # Extract columns
     x = features[:, 0]
     y = features[:, 1]
-    gtk_stations = features[:, 2].astype(int)
+    gtk_stations = features[:, 2].astype(float)
     t = features[:, 3]
 
     # Create subplots for the 4 GTK stations in a 2x2 grid
@@ -235,15 +236,14 @@ def split_hits_by_gtk(features_tensor, dataframe_path):
 
 def add_filled_disk(fig, radius, y_position, color):
     """
-    Adds a solid 3D disk to a Plotly figure using a parametric surface.
+    Adds a solid 3D disk to a Plotly figure using a parametric surface and draws its center axes.
     """
     # 1. Create a polar grid (r from 0 to radius, theta from 0 to 2pi)
-    r = np.linspace(0, radius, 2)            # Only start and end points needed for a flat surface
-    theta = np.linspace(0, 2*np.pi, 60)      # 60 points for a smooth circular edge
+    r = np.linspace(0, radius, 2)
+    theta = np.linspace(0, 2*np.pi, 60)
     r_grid, theta_grid = np.meshgrid(r, theta)
     
     # 2. Convert Polar coordinates to Cartesian (X, Y, Z)
-    # We keep Y constant so the disk lies on the XZ plane
     x = r_grid * np.cos(theta_grid)
     z = r_grid * np.sin(theta_grid)
     y = np.full_like(x, y_position)
@@ -251,9 +251,23 @@ def add_filled_disk(fig, radius, y_position, color):
     # 3. Add to figure as a Surface
     fig.add_trace(go.Surface(
         x=x, y=y, z=z,
-        colorscale=[[0, color], [1, color]], # Uniform color
-        showscale=False,                     # Hide the color bar
-        opacity=0.4,                         # Adjust transparency
+        colorscale=[[0, color], [1, color]],
+        showscale=False,
+        opacity=0.4,
+        showlegend=False
+    ))
+
+    # 4. Add two orthogonal lines (diameters) through the center
+    fig.add_trace(go.Scatter3d(
+        x=[-radius, radius], y=[y_position, y_position], z=[0, 0],
+        mode='lines',
+        line=dict(color='blue', width=6, dash='dash'),
+        showlegend=False
+    ))
+    fig.add_trace(go.Scatter3d(
+        x=[0, 0], y=[y_position, y_position], z=[-radius, radius],
+        mode='lines',
+        line=dict(color='blue', width=6, dash='dash'),
         showlegend=False
     ))
 
@@ -262,15 +276,16 @@ def update_gtk_layout(fig):
             scene=dict(
                 xaxis=dict(title='X', range=[-40, 40]),
                 yaxis=dict(
-                    title='Z',
+                    title='',
                     tickmode='array',
-                    tickvals=[0, 1, 2, 3],
+                    tickvals=[0.8 , 1, 1.6, 3],
                     ticktext=['GTK0', 'GTK1', 'GTK2', 'GTK3'],
                     range=[-1, 4]
                 ),
-                zaxis=dict(title='Y', range=[-20, 20])
+                zaxis=dict(title='Y', range=[-40, 40])
             )
         )
+        
 
 
 def plot_3d_interactive_develop(pred_tracks, 
@@ -299,23 +314,23 @@ def plot_3d_interactive_develop(pred_tracks,
     # Extract columns for hits in time window
     x_in_time = features_in_time_window[:, 0]
     y_in_time = features_in_time_window[:, 1]
-    z_station_in_time = features_in_time_window[:, 2].astype(int)
+    z_station_in_time = features_in_time_window[:, 2].astype(float)
 
     # Extract columns for all hits
     x = features[:, 0]
     y = features[:, 1]
-    z_station = features[:, 2].astype(int)
+    z_station = features[:, 2].astype(float)
 
     fig = go.Figure()
     base_colors = ['red', 'blue', 'green', 'orange', 'purple', 'cyan', 'magenta', 'brown', 'grey', 'pink']
 
     # 1. Plot all hits in the time window as black points
     fig.add_trace(go.Scatter3d(
-        x=x_in_time, y=z_station_in_time, z=y_in_time,
+        x=x_in_time, y= z_station_in_time, z=y_in_time, 
         mode='markers',
         marker=dict(size=marker_size, color='black'),
         name='Hits in time window',
-        visible=True  # Always visible
+        visible=True  
     ))
 
     # 2. Plot tracks by connecting hits
@@ -324,7 +339,7 @@ def plot_3d_interactive_develop(pred_tracks,
         if idx.size == 0:
             continue
         fig.add_trace(go.Scatter3d(
-            x=x[idx], y=z_station[idx], z=y[idx],
+            x=x[idx], y= z_station[idx] , z=y[idx],
             mode='lines+markers',
             line=dict(width=line_width, color=base_colors[i % len(base_colors)]),
             marker=dict(size=marker_size),
@@ -333,49 +348,51 @@ def plot_3d_interactive_develop(pred_tracks,
         ))
 
 
-        # Supponiamo che z_GTK3 = 102400 (cm) e z_Straw1 = 183000 (cm)
-        # Per ogni candidato
-        dz = 11 - 3  # distanza tra GTK3 (3) e Straw1 (11) sull'asse delle stazioni
-        for x0, z0, px, py in zip(data['candidate_x'], data['candidate_y'], data['candidate_MomentumX'], data['candidate_MomentumY']):
-            # Prendi solo l'ultimo punto di ogni candidato
-            x_last = x0[-1]
-            z_last = z0[-1]
-
-            x1 = x_last + px * dz
-            z1 = z_last + p * dz
-
-            # Punto su GTK3
-            fig.add_trace(go.Scatter3d(
-                x=[x_last], y=[3], z=[z_last],
-                mode='markers',
-                marker=dict(size=4, color='black'),
-                name='Candidate GTK3'
-            ))
-
-            # Linea fino a Straw1
-            fig.add_trace(go.Scatter3d(
-                x=[x_last, x1], y=[3, 11], z=[z_last, z1],
-                mode='lines',
-                line=dict(width=2, color='red', dash='dash'),
-                name='Prolungamento'
-            ))
-
-    
-    
-
-    # # 3. Define station planes for visualization
-    # x_lim = (-150, 150)  # Fixed limits for X
-    # y_lim = (-150, 150)  # Fixed limits for Y
-
-    X_plane = [-30.4, 30.4, 30.4, -30.4]
-    Z_plane = [-13.5, -13.5, 13.5, 13.5]
+    # 3. Define station planes for visualization
+    x_lim = (-30.4, 30.4)  # Fixed limits for X
+    y_lim = (-13.5, 13.5)  # Fixed limits for Y
+    X_plane = [x_lim[0], x_lim[1], x_lim[1], x_lim[0]]
+    Z_plane = [y_lim[0], y_lim[0], y_lim[1], y_lim[1]]
     for s in sorted(np.unique(z_station)):
         fig.add_trace(go.Mesh3d(
             x=X_plane, y=[s] * 4, z=Z_plane,
             i=[0, 0], j=[1, 2], k=[2, 3],
-            opacity=0.2, color='black', showlegend= False
+            opacity=0.12, color='black', showlegend=False
         ))
+
     update_gtk_layout(fig)
+
+
+    # 4. Candidates positions on GTK3
+    dz = (11 - 3) * 10000  # distance between GTK3 and Straw1 is approximately 80 m= 80 0000 mm 
+
+    for i in range(len(data['candidate_x'])):
+        # Take candidate position on GTK3
+        x0 = data['candidate_x'][i][-1] 
+        y0 = data['candidate_y'][i][-1] 
+        slope_x = data['candidate_MomentumX'][i] / data['candidate_MomentumZ'][i] 
+        slope_y = data['candidate_MomentumY'][i] / data['candidate_MomentumZ'][i] 
+        x1 = x0 + -slope_x * dz # THANKS MATT: pay attention to the coordinate system! positives x means that the beam goes to the left
+        y1 = y0 + slope_y * dz
+
+        # Marker on GTK3 to represent the candidate position 
+        fig.add_trace(go.Scatter3d(
+            x=[x0], y=[3], z=[y0],
+            mode='markers',
+            marker=dict(size=6, color=base_colors[i % len(base_colors)], symbol="diamond", opacity=0.5),
+            name=f'Candidate {i}',
+            showlegend=True
+        ))
+
+        fig.add_trace(go.Scatter3d(
+            x=[x0, x1], y=[3, 11], z=[y0, y1],
+            mode='lines',
+            line=dict(width=3, color=base_colors[i % len(base_colors)]),
+            name=f"Candidate {i}",
+            showlegend=False
+        ))
+        
+
 
 
     if config["visualizer"] == "Combined":
@@ -402,8 +419,8 @@ def plot_3d_interactive_develop(pred_tracks,
             fig.add_trace(go.Scatter3d(
                 x=x_vals, y=y_vals, z=z_vals,
                 mode='lines',
-                line=dict(width=4),
-                showlegend=False,
+                line=dict(width=4, color='black', dash='dash'),
+                showlegend=False
             ))
             # at the intersection  between segment and the plane y=11 and y=12 add the points
             y_intersection_11 = 11
