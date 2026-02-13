@@ -287,11 +287,9 @@ def plot_3d_interactive_develop(pred_tracks,
     """
 
     # COLORS
-    colorscale = 'rainbow'
+    colorscale = 'Spectral'
     cmin = -10
     cmax = 10
-    norm = mcolors.Normalize(vmin=cmin, vmax=cmax)
-    cmap = cm.get_cmap(colorscale)
 
     # Convert tensors to numpy arrays for easier manipulation
     features_in_time_window = features_tensor_in_time_window.numpy() if hasattr(features_tensor_in_time_window, "numpy") else np.asarray(features_tensor_in_time_window)
@@ -301,28 +299,35 @@ def plot_3d_interactive_develop(pred_tracks,
     x_in_time = features_in_time_window[:, 0]
     y_in_time = features_in_time_window[:, 1]
     z_station_in_time = features_in_time_window[:, 2].astype(float)
+    times_in_time = features_in_time_window[:, 3]
 
     # Extract columns for all hits
     x = features[:, 0]
     y = features[:, 1]
     z_station = features[:, 2].astype(float)
-    times = features[:, 3] #- data['ktag_time'] *24.95/256 
+    times = features[:, 3] 
 
     fig = go.Figure()
     
-    color_rgb = cmap(norm(times))
-    color_hex = np.array([mcolors.to_hex(c) for c in color_rgb])
-    
     # 1. Plot all hits in the time window as black points
     fig.add_trace(go.Scatter3d(
-        x=x_in_time, y= z_station_in_time, z=y_in_time, 
+        x=x_in_time, y=z_station_in_time, z=y_in_time,
         mode='markers',
         marker=dict(
             size=marker_size,
-            color='black'
+            color=times_in_time,
+            colorscale=colorscale,
+            cmin=cmin,
+            cmax=cmax,
+            colorbar=dict(
+                title='Time (ns)',
+                thickness=20,
+                len=0.5,
+                x=0.02
+            )
         ),
-        name = 'Hits in Time Window',
-        showlegend= True,  
+        name='Hits in Time Window',
+        showlegend=False
     ))
 
     # 2. Plot tracks by connecting hits
@@ -331,17 +336,29 @@ def plot_3d_interactive_develop(pred_tracks,
         if idx.size == 0:
             continue
         fig.add_trace(go.Scatter3d(
-            x=x[idx], y= z_station[idx] , z=y[idx],
+            x=x[idx], y=z_station[idx], z=y[idx],
             mode='lines+markers',
-            line=dict(width=line_width, color= color_hex[idx]),
-            marker=dict(size=marker_size, color= color_hex[idx]),
-            showlegend=False,
+            line=dict(
+                width=line_width,
+                color=times[idx],
+                colorscale=colorscale,
+                cmin=cmin,
+                cmax=cmax
+            ),
+            marker=dict(
+                size=marker_size,
+                color=times[idx],
+                colorscale=colorscale,
+                cmin=cmin,
+                cmax=cmax
+            ),
+            showlegend=False
         ))
 
 
     # 3. Define station planes for visualization
-    x_lim = (-30.4, 30.4)  # Fixed limits for X
-    y_lim = (-13.5, 13.5)  # Fixed limits for Y
+    x_lim = (-30.4, 30.4)
+    y_lim = (-13.5, 13.5)
     X_plane = [x_lim[0], x_lim[1], x_lim[1], x_lim[0]]
     Z_plane = [y_lim[0], y_lim[0], y_lim[1], y_lim[1]]
     for s in sorted(np.unique(z_station)):
@@ -359,25 +376,25 @@ def plot_3d_interactive_develop(pred_tracks,
             showlegend=False
         ))
 
-    # Add invisible scatter to plot colorbar on the left
-    fig.add_trace(go.Scatter3d(
-        x=[None], y=[None], z=[None],  
-        mode='markers',
-        marker=dict(
-            size=0.1,
-            color=[-10, 0, 10],  
-            colorscale=colorscale,
-            cmin=cmin,
-            cmax=cmax,
-            colorbar=dict(
-                title='Time (ns)',
-                thickness=20,
-                len=0.5,
-                x=0.02  
-            )
-        ),
-        showlegend=False
-    ))
+    # # Add invisible scatter to plot colorbar on the left
+    # fig.add_trace(go.Scatter3d(
+    #     x=[None], y=[None], z=[None],  
+    #     mode='markers',
+    #     marker=dict(
+    #         size=0.1,
+    #         color=[-10, 0, 10],  
+    #         colorscale=colorscale,
+    #         cmin=cmin,
+    #         cmax=cmax,
+    #         colorbar=dict(
+    #             title='Time (ns)',
+    #             thickness=20,
+    #             len=0.5,
+    #             x=0.02  
+    #         )
+    #     ),
+    #     showlegend=False
+    # ))
     
     update_gtk_layout(fig)
 
@@ -387,33 +404,44 @@ def plot_3d_interactive_develop(pred_tracks,
     # select candidates in the time window
     mask_candidates = (candidates_time >= config['time_window_min']) & (candidates_time <= config['time_window_max'])
     dz = (11 - 3) * 10000  # distance between GTK3 and Straw1 is approximately 80 m= 80 0000 mm 
-    color_rgb = cmap(norm(candidates_time))
-    color_hex = np.array([mcolors.to_hex(c) for c in color_rgb])
 
     for i in range(len(data['candidate_x'])):
-        if mask_candidates[i]: 
-            # Take candidate position on GTK3
-            x0 = data['candidate_x'][i][-1] 
-            y0 = data['candidate_y'][i][-1] 
-            slope_x = data['candidate_MomentumX'][i] / data['candidate_MomentumZ'][i] 
-            slope_y = data['candidate_MomentumY'][i] / data['candidate_MomentumZ'][i] 
-            x1 = x0 + -slope_x * dz # THANKS MATT: pay attention to the coordinate system! positives x means that the beam goes to the left
+        if mask_candidates[i]:
+            x0 = data['candidate_x'][i][-1]
+            y0 = data['candidate_y'][i][-1]
+            slope_x = data['candidate_MomentumX'][i] / data['candidate_MomentumZ'][i]
+            slope_y = data['candidate_MomentumY'][i] / data['candidate_MomentumZ'][i]
+            x1 = x0 + -slope_x * dz
             y1 = y0 + slope_y * dz
 
-            # Marker on GTK3 to represent the candidate position 
+            # Marker candidate
             fig.add_trace(go.Scatter3d(
                 x=[x0], y=[3], z=[y0],
                 mode='markers',
-                marker = dict(size= 4, color= color_hex[i], symbol="diamond"),
-                showlegend= False
+                marker=dict(
+                    size=marker_size,
+                    color=[candidates_time[i]],
+                    colorscale=colorscale,
+                    cmin=cmin,
+                    cmax=cmax,
+                    symbol="diamond"
+                ),
+                name=f'Candidate {i} at time {candidates_time[i]:.2f} ns',
+                showlegend= True
             ))
 
+            # Track candidate projection
             fig.add_trace(go.Scatter3d(
                 x=[x0, x1], y=[3, 11], z=[y0, y1],
                 mode='lines',
-                line=dict(width =line_width, color= color_hex[i]),
-                name=f"Candidate {i}",
-                showlegend= True
+                line=dict(
+                    width=line_width,
+                    color=[candidates_time[i], candidates_time[i]],
+                    colorscale=colorscale,
+                    cmin=cmin,
+                    cmax=cmax
+                ),
+                showlegend=False
             ))
            
 

@@ -16,9 +16,9 @@ straw_y1_key: /SlimReco;1/Spectrometer/fCandidates/fCandidates.fPositionYBeforeM
 straw_y_slope_key: /SlimReco;1/Spectrometer/fCandidates/fCandidates.fSlopeYBeforeMagnet
 time_key: /SlimReco;1/GigaTracker/fHits/fHits.fTime
 time_window_max: 10
-time_window_min: 3
+time_window_min: -5
 tree_path: /SlimReco;1
-visualizer: GTK
+visualizer: Combined
 x_key: /SlimReco;1/GigaTracker/fHits/fHits.fPositionX
 y_key: /SlimReco;1/GigaTracker/fHits/fHits.fPositionY
 z_key: /SlimReco;1/GigaTracker/fHits/fHits.fPositionZ
