@@ -319,7 +319,7 @@ def plot_3d_interactive_develop(pred_tracks,
         mode='markers',
         marker=dict(
             size=marker_size,
-            color=color_hex
+            color='black'
         ),
         name = 'Hits in Time Window',
         showlegend= True,  
