@@ -253,7 +253,7 @@ def add_filled_disk(fig, radius, y_position, color):
 def update_gtk_layout(fig):
         fig.update_layout(
             scene=dict(
-                xaxis=dict(title='X', range=[-40, 40]),
+                xaxis=dict(title='X [mm]', range=[-40, 40]),
                 yaxis=dict(
                     title='',
                     tickmode='array',
@@ -261,7 +261,7 @@ def update_gtk_layout(fig):
                     ticktext=['GTK0', 'GTK1', 'GTK2', 'GTK3'],
                     range=[-1, 4]
                 ),
-                zaxis=dict(title='Y', range=[-40, 40])
+                zaxis=dict(title='Y [mm]', range=[-30, 30])
             )
         )
         
@@ -287,7 +287,7 @@ def plot_3d_interactive_develop(pred_tracks,
     """
 
     # COLORS
-    colorscale = 'Turbo' #'Spectral'
+    colorscale = 'Bluered' #'Spectral'
     cmin = config['time_window_min']
     cmax = config['time_window_max']
 
@@ -372,7 +372,7 @@ def plot_3d_interactive_develop(pred_tracks,
             y=[s, s, s, s, s],
             z=[Z_plane[0], Z_plane[1], Z_plane[2], Z_plane[3], Z_plane[0]],
             mode='lines',
-            line=dict(color='black', width=4),
+            line=dict(color='black', width=1),
             showlegend=False
         ))
     
@@ -489,8 +489,6 @@ def plot_3d_interactive_develop(pred_tracks,
             zaxis=dict(title='Y', range=[-1200, 1200])
         )
     )
-            
-
 
     # 5. Save the plot as an HTML file and optionally display it
     pio.write_html(fig, file=save_path, auto_open=False, include_plotlyjs='cdn')
