@@ -257,7 +257,7 @@ def update_gtk_layout(fig):
                 yaxis=dict(
                     title='',
                     tickmode='array',
-                    tickvals=[0.8 , 1, 1.6, 3],
+                    tickvals=[0.5 , 1, 1.6, 3],
                     ticktext=['GTK0', 'GTK1', 'GTK2', 'GTK3'],
                     range=[-1, 4]
                 ),
@@ -287,9 +287,9 @@ def plot_3d_interactive_develop(pred_tracks,
     """
 
     # COLORS
-    colorscale = 'Spectral'
-    cmin = -10
-    cmax = 10
+    colorscale = 'Turbo' #'Spectral'
+    cmin = config['time_window_min']
+    cmax = config['time_window_max']
 
     # Convert tensors to numpy arrays for easier manipulation
     features_in_time_window = features_tensor_in_time_window.numpy() if hasattr(features_tensor_in_time_window, "numpy") else np.asarray(features_tensor_in_time_window)
@@ -323,7 +323,7 @@ def plot_3d_interactive_develop(pred_tracks,
                 title='Time (ns)',
                 thickness=20,
                 len=0.5,
-                x=0.02
+                x=0.15
             )
         ),
         name='Hits in Time Window',
@@ -378,56 +378,54 @@ def plot_3d_interactive_develop(pred_tracks,
     
     update_gtk_layout(fig)
 
-
-    # 4. Candidates positions on GTK3
-    candidates_time = data['candidate_time'] - data['ktag_time'] *24.95/256
-    # select candidates in the time window
-    mask_candidates = (candidates_time >= config['time_window_min']) & (candidates_time <= config['time_window_max'])
-    dz = (11 - 3) * 10000  # distance between GTK3 and Straw1 is approximately 80 m= 80 0000 mm 
-
-    for i in range(len(data['candidate_x'])):
-        if mask_candidates[i]:
-            x0 = data['candidate_x'][i][-1]
-            y0 = data['candidate_y'][i][-1]
-            slope_x = data['candidate_MomentumX'][i] / data['candidate_MomentumZ'][i]
-            slope_y = data['candidate_MomentumY'][i] / data['candidate_MomentumZ'][i]
-            x1 = x0 + -slope_x * dz
-            y1 = y0 + slope_y * dz
-
-            # Marker candidate
-            fig.add_trace(go.Scatter3d(
-                x=[x0], y=[3], z=[y0],
-                mode='markers',
-                marker=dict(
-                    size=marker_size,
-                    color=[candidates_time[i]],
-                    colorscale=colorscale,
-                    cmin=cmin,
-                    cmax=cmax,
-                    symbol="diamond"
-                ),
-                name=f'Candidate {i} at time {candidates_time[i]:.2f} ns',
-                showlegend= True
-            ))
-
-            # Track candidate projection
-            fig.add_trace(go.Scatter3d(
-                x=[x0, x1], y=[3, 11], z=[y0, y1],
-                mode='lines',
-                line=dict(
-                    width=line_width,
-                    color=[candidates_time[i], candidates_time[i]],
-                    colorscale=colorscale,
-                    cmin=cmin,
-                    cmax=cmax
-                ),
-                showlegend=False
-            ))
-           
-
-
-
     if config["visualizer"] == "Combined":
+
+        # 4. Candidates positions on GTK3
+        candidates_time = data['candidate_time'] - data['ktag_time'] *24.95/256
+        # select candidates in the time window
+        mask_candidates = (candidates_time >= config['time_window_min']) & (candidates_time <= config['time_window_max'])
+        dz = (11 - 3) * 10000  # distance between GTK3 and Straw1 is approximately 80 m= 80 0000 mm 
+
+        for i in range(len(data['candidate_x'])):
+            if mask_candidates[i]:
+                x0 = data['candidate_x'][i][-1]
+                y0 = data['candidate_y'][i][-1]
+                slope_x = data['candidate_MomentumX'][i] / data['candidate_MomentumZ'][i]
+                slope_y = data['candidate_MomentumY'][i] / data['candidate_MomentumZ'][i]
+                x1 = x0 + -slope_x * dz
+                y1 = y0 + slope_y * dz
+
+                # Marker candidate
+                fig.add_trace(go.Scatter3d(
+                    x=[x0], y=[3], z=[y0],
+                    mode='markers',
+                    marker=dict(
+                        size=marker_size,
+                        color=[candidates_time[i]],
+                        colorscale=colorscale,
+                        cmin=cmin,
+                        cmax=cmax,
+                        symbol="diamond"
+                    ),
+                    name=f'Candidate {i} at time {candidates_time[i]:.2f} ns',
+                    showlegend= True
+                ))
+
+                # Track candidate projection
+                fig.add_trace(go.Scatter3d(
+                    x=[x0, x1], y=[3, 11], z=[y0, y1],
+                    mode='lines',
+                    line=dict(
+                        width=line_width,
+                        color=[candidates_time[i], candidates_time[i]],
+                        colorscale=colorscale,
+                        cmin=cmin,
+                        cmax=cmax
+                    ),
+                    showlegend=False
+                ))
+            
+
         # # STRAW
         # Straw planes
         add_filled_disk(fig, radius=1050, y_position=11, color='blue')
