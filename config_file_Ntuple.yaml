@@ -22,3 +22,4 @@ visualizer: GTK
 x_key: /SlimReco;1/GigaTracker/fHits/fHits.fPositionX
 y_key: /SlimReco;1/GigaTracker/fHits/fHits.fPositionY
 z_key: /SlimReco;1/GigaTracker/fHits/fHits.fPositionZ
+if_gif: True

@@ -33,6 +33,14 @@ def main():
         save_path=f"{config['plot_folder_path']}/Interactive_plot_tracks.html",
     )
 
+    # Plot gif 
+    if config['if_gif']:
+        plot_3d_gif(predicted_tracks_indexes,
+                    features_tensor,
+                    config,
+                    save_path=f"{config['plot_folder_path']}/gtk_3d.gif",)
+
+
 
 if __name__ == "__main__":
     main()

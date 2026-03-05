@@ -10,6 +10,9 @@ import uproot_custom as ac
 from IPython.display import display
 import matplotlib.cm as cm 
 import matplotlib.colors as mcolors
+import matplotlib.animation as animation
+from matplotlib.animation import PillowWriter
+from matplotlib.colors import LinearSegmentedColormap
 
 def read_root_file(config):
     """
@@ -250,7 +253,7 @@ def add_filled_disk(fig, radius, y_position, color):
         showlegend=False
     ))
 
-def update_gtk_layout(fig):
+def     update_gtk_layout(fig):
         fig.update_layout(
             scene=dict(
                 xaxis=dict(title='X [mm]', range=[-40, 40]),
@@ -309,7 +312,7 @@ def plot_3d_interactive_develop(pred_tracks,
 
     fig = go.Figure()
     
-    # 1. Plot all hits in the time window as black points
+    # 1. Plot all hits in the time window 
     fig.add_trace(go.Scatter3d(
         x=x_in_time, y=z_station_in_time, z=y_in_time,
         mode='markers',
@@ -332,28 +335,29 @@ def plot_3d_interactive_develop(pred_tracks,
 
     # 2. Plot tracks by connecting hits
     for i, track in enumerate(pred_tracks):
-        idx = np.asarray(track, dtype=int)
-        if idx.size == 0:
-            continue
-        fig.add_trace(go.Scatter3d(
-            x=x[idx], y=z_station[idx], z=y[idx],
-            mode='lines+markers',
-            line=dict(
-                width=line_width,
-                color=times[idx],
-                colorscale=colorscale,
-                cmin=cmin,
-                cmax=cmax
-            ),
-            marker=dict(
-                size=marker_size,
-                color=times[idx],
-                colorscale=colorscale,
-                cmin=cmin,
-                cmax=cmax
-            ),
-            showlegend=False
-        ))
+        if is_valid_track(track, features_tensor):
+            idx = np.asarray(track, dtype=int)
+            if idx.size == 0:
+                continue
+            fig.add_trace(go.Scatter3d(
+                x=x[idx], y=z_station[idx], z=y[idx],
+                mode='lines+markers',
+                line=dict(
+                    width=line_width,
+                    color=times[idx],
+                    colorscale=colorscale,
+                    cmin=cmin,
+                    cmax=cmax
+                ),
+                marker=dict(
+                    size=marker_size,
+                    color=times[idx],
+                    colorscale=colorscale,
+                    cmin=cmin,
+                    cmax=cmax
+                ),
+                showlegend=False
+            ))
 
 
     # 3. Define station planes for visualization
@@ -496,3 +500,133 @@ def plot_3d_interactive_develop(pred_tracks,
         fig.show()
     return fig
 
+def plot_3d_gif(pred_tracks, features_tensor, config, save_path='gtk_3d.gif', frames=180, interval=10, fps=20):
+
+    """
+    Plots only the GTK stations in 3D and saves a rotating GIF animation.
+    The color of the tracks and hits depends on the time value.
+
+    Args:
+        pred_tracks (list): List of predicted tracks (each track is a list of indices).
+        features_tensor (torch.Tensor): Tensor with columns [x, y, z_station, t].
+        config (dict): Configuration dictionary containing time window parameters.
+        frames (int): Number of animation frames.
+        interval (int): Interval between frames in milliseconds.
+        fps (int): Frames per second for the GIF.
+    """
+
+    # colorscale = 'coolwarm' #'Spectral' --> MATPLOTLIB Does not have Bluered
+    colors = ["blue", "purple", "red"]
+    nodes = [0.0, 0.5, 1.0]
+
+    # Creiamo la colormap
+    my_cmap = LinearSegmentedColormap.from_list("blue_purple_red", list(zip(nodes, colors)))
+    cmin = config['time_window_min']
+    cmax = config['time_window_max']
+
+    features = features_tensor.numpy()
+    x = features[:, 0]
+    y = features[:, 1]
+    z = features[:, 2]
+    t = features[:, 3]
+
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Axis labels
+    ax.set_xlabel('X [mm]')
+    ax.set_ylabel('GTK Station', labelpad=30)
+    ax.set_yticks([0.8, 1, 1.6, 3])
+    ax.set_yticklabels(['GTK 0', 'GTK 1', 'GTK 2', 'GTK 3'], rotation=45)
+    ax.set_zlabel('Y [mm]')
+
+    # Axis limits come in update_gtk_layout
+    ax.set_xlim(-40, 40)
+    ax.set_ylim(-1, 4)
+    ax.set_zlim(-30, 30)
+
+    # GTK station surfaces
+    xx, yy = np.meshgrid(np.linspace(-30.4, 30.4, 10), np.linspace(-13.5, 13.5, 10))
+    gtk_vals = [0.8, 1, 1.6, 3]
+    for gtk in gtk_vals:
+        ax.plot_surface(xx, np.full_like(xx, gtk), yy, color='black', alpha=0.1)
+
+    # Colormap for time
+    norm = mcolors.Normalize(vmin=cmin, vmax=cmax)
+    cmap = my_cmap
+
+    # Plot tracks
+    for track_idx, track in enumerate(pred_tracks):
+        idx = np.asarray(track, dtype=int)
+        if idx.size == 0:
+            continue
+        track_times = t[idx]
+        track_colors = cmap(norm(track_times))
+        if is_valid_track(track, features_tensor):
+            # Plot lines (segments colored by time)
+            for i in range(len(idx) - 1):
+                ax.plot(
+                    x[idx][i:i+2], z[idx][i:i+2], y[idx][i:i+2],
+                    color=track_colors[i], alpha=0.7, linewidth=2
+                )
+            # Plot points
+            sc = ax.scatter(
+                x[idx], z[idx], y[idx],
+                c=track_times, cmap=cmap, norm=norm,
+                marker='o', s=40, edgecolors='black'
+            )
+        # else: 
+        #     # Plot points
+        #     sc = ax.scatter(
+        #         x[idx], z[idx], y[idx],
+        #         c=track_times, cmap=cmap, norm=norm,
+        #         marker='o', s=40, edgecolors='black'
+        #     )
+
+    # colorbar
+    mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
+    mappable.set_array([])
+    cbar = plt.colorbar(mappable, ax=ax, pad=0.05, aspect=20, location='left', shrink=0.6) 
+    cbar.set_label('Time (ns)')
+
+    # Hit in time but not assigned to any track
+    mask_time = (t >= cmin) & (t <= cmax)
+    indices_in_time = np.where(mask_time)[0]
+    assigned_indices = set()
+    for track in pred_tracks:
+        assigned_indices.update(track)
+    assigned_indices = set(assigned_indices)
+    unassigned_in_time = np.array([i for i in indices_in_time if i not in assigned_indices], dtype=int)
+    if unassigned_in_time.size > 0:
+        ax.scatter(
+            x[unassigned_in_time], z[unassigned_in_time], y[unassigned_in_time],
+            c='black', marker='o', s=40, edgecolors='black', alpha=0.7, label='Unassigned hits in time'
+        )
+
+    # Animation functions
+    def init():
+        ax.view_init(20, 15)
+        return fig,
+
+    def animate(i):
+        ax.view_init(elev=20, azim=i * 2)
+        return fig,
+
+    anim = animation.FuncAnimation(fig, animate, init_func=init, frames=frames, interval=interval)
+    anim.save(save_path, writer=PillowWriter(fps=fps))
+    print(f"GIF saved to {save_path}")
+    plt.close(fig)
+
+
+def is_valid_track(track, features_tensor):
+    stations_mapping = {0.8: 0, 1.0: 1, 1.6: 2, 3.0: 3}
+    stations = set(
+        stations_mapping.get(round(features_tensor[idx, 2].item(), 1), -1)
+        for idx in track
+    )
+    valid_sets = [
+        {0, 2, 3},
+        {1, 2, 3},
+        {0, 1, 2, 3}
+    ]
+    return any(stations == s for s in valid_sets)
