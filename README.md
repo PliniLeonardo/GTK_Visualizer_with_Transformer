@@ -6,9 +6,9 @@ Visualize the GTK station tracks and hits in [-10, +10] nsec window.
 Execute the script ```./setup_env.sh``` to create the virtual environment.
 Activate the environment  ```source VisualizationGTK_environment/bin/activate```
 
+To run ```python Ntuple_Visualization.py config_file_Ntuple.yaml```
 
-
-# Commands to run Visualization with Ntuple from Reconstruction
+<!-- # Commands to run Visualization with Ntuple from Reconstruction
 1. Insert your root file in the folder data_to_visualize
 2. Use the config_file_Ntuple.yaml to modify the parameters
 3. Run the command ``` python Ntuple_Visualization.py config_file_Ntuple.yaml``` .
@@ -32,4 +32,4 @@ The transformer and Develop Visualizations will be removed to have a single Visu
 1. Insert your root file in the folder data_to_visualize
 2. Use the config_file_Develop.yaml to modify the parameters
 3. Run the command ``` python Develop_Visualization.py config_file_Develop.yaml``` .
-
+ -->
